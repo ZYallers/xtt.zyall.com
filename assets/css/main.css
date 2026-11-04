@@ -135,25 +135,22 @@ body {
 /* 外层管定位与 hover 抽牌，内层卡片跑摆动/换卡动画，互不打架 */
 .polaroid {
   position: absolute; width: clamp(112px, 14.5vw, 170px); aspect-ratio: 3 / 4;
-  background: #fff; padding: 7px 7px 24px; border-radius: 4px;
-  box-shadow: var(--shadow-2);
-  left: 50%; top: 0;
+  left: 50%; top: 34px;
   transform: translateX(-50%);
-  transform-origin: 50% 100%;
   z-index: var(--z, 10);
   transition: transform .4s var(--ease);
   will-change: transform;
-  overflow: hidden;
 }
 .polaroid:hover {
-  transform: translateX(-50%) translateY(-22px) scale(1.07);
+  transform: translateX(-50%) translateY(-10px) scale(1.05);
   z-index: 30;
 }
-.polaroid-card { width: 100%; height: 100%; animation: sway 9s ease-in-out infinite; }
-.polaroid img { width: 100%; height: 100%; object-fit: cover; border-radius: 2px; display: block; filter: saturate(.92) contrast(1.02); }
+/* 旋转轴在底部，5 张卡以底部为轴向两侧张开成扇形 */
+.polaroid-card { width: 100%; height: 100%; transform-origin: 50% 100%; animation: sway 9s ease-in-out infinite; }
+.polaroid img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: block; filter: saturate(.92) contrast(1.02); box-shadow: var(--shadow-2); }
 .polaroid::after {
-  content: ""; position: absolute; inset: 7px 7px 24px; border-radius: 2px;
-  box-shadow: inset 0 0 24px rgba(140, 100, 50, .18);
+  content: ""; position: absolute; inset: 0; border-radius: 10px;
+  box-shadow: inset 0 0 24px rgba(140, 100, 50, .15);
   pointer-events: none;
 }
 .polaroid.p-out .polaroid-card { animation: pOut .48s var(--ease) forwards; }
