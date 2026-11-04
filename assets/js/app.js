@@ -589,8 +589,43 @@
     const p = dParts(it.d);
     const dateTxt = p ? `${p.y} 年 ${p.m} 月 ${p.d} 日 · ${p.t}` : '未标注日期';
     const note = it.w ? ' · 扩展名与实际格式不符' : '';
+    const fname = it.p.split('/').pop();
     lbCap.innerHTML = `<div class="cap-main">${esc(it.a)}</div>
+      <button class="cap-name" type="button" title="点击复制文件名">${esc(fname)}</button>
       <div class="cap-sub">${dateTxt}${note}<span class="cap-count">${lbIndex + 1} / ${lbList.length}</span></div>`;
+
+    /* 点文件名 = 复制（含扩展名），按钮短暂显示结果 */
+    const nameBtn = lbCap.querySelector('.cap-name');
+    nameBtn.addEventListener('click', async () => {
+      const ok = await copyText(fname);
+      nameBtn.classList.add(ok ? 'copied' : 'fail');
+      nameBtn.textContent = ok ? '已复制 ✓' : '复制失败';
+      setTimeout(() => {
+        nameBtn.textContent = fname;
+        nameBtn.classList.remove('copied', 'fail');
+      }, 1200);
+    });
+  }
+
+  /* 剪贴板：先在用户手势内同步走 execCommand（最稳），
+     失败再试 Clipboard API（需 https 安全上下文） */
+  function copyText(text) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:-999px;opacity:0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand('copy');
+      ta.remove();
+      if (ok) return Promise.resolve(true);
+    } catch (e) { /* 继续走现代 API */ }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(() => true).catch(() => false);
+    }
+    return Promise.resolve(false);
   }
 
   function closeLightbox() {

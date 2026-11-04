@@ -549,6 +549,20 @@ body {
 .lb-cap .cap-main { font-family: var(--serif); font-size: 16px; letter-spacing: .06em; }
 .lb-cap .cap-sub { font-size: 11.5px; opacity: .62; letter-spacing: .12em; margin-top: 3px; }
 .lb-cap .cap-count { display: inline-block; margin-left: 10px; opacity: .55; font-variant-numeric: tabular-nums; }
+/* 文件名：点击复制 */
+.lb-cap .cap-name {
+  display: inline-block; max-width: 86vw; margin-top: 3px; padding: 1px 12px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: inherit; font-size: 11.5px; letter-spacing: .05em; line-height: 1.7;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 246, 232, .78); background: rgba(255, 255, 255, .06);
+  border: 1px dashed rgba(255, 246, 232, .32); border-radius: 999px;
+  cursor: pointer; pointer-events: auto;
+  transition: color .2s var(--ease), border-color .2s var(--ease), background .2s var(--ease);
+}
+.lb-cap .cap-name:hover { color: #fff; background: rgba(255, 255, 255, .12); border-color: rgba(255, 246, 232, .65); }
+.lb-cap .cap-name.copied { color: #ffe9c8; border-style: solid; border-color: rgba(255, 233, 200, .75); }
+.lb-cap .cap-name.fail { color: #ffb3a0; border-style: solid; border-color: rgba(255, 140, 110, .7); }
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 900px) {
