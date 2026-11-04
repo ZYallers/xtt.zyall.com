@@ -153,19 +153,19 @@ body {
   box-shadow: inset 0 0 24px rgba(140, 100, 50, .15);
   pointer-events: none;
 }
-.polaroid.p-out .polaroid-card { animation: pOut .48s var(--ease) forwards; }
-.polaroid.p-in .polaroid-card { animation: pIn .55s var(--ease) both; }
+.polaroid.p-out .polaroid-card { animation: pOut .45s var(--ease) forwards; }
+.polaroid.p-in .polaroid-card { animation: pIn .5s var(--ease) both; }
 @keyframes sway {
   0%, 100% { transform: rotate(var(--rot, 0deg)); }
   50% { transform: translateY(-12px) rotate(calc(var(--rot, 0deg) + 1.6deg)); }
 }
-/* 换卡：旧卡往下收走，新卡从上方落下 */
+/* 换卡：旧图向上抽出，新图从下往上插入 */
 @keyframes pOut {
   from { opacity: 1; transform: rotate(var(--rot, 0deg)); }
-  to { opacity: 0; transform: translateY(30px) rotate(calc(var(--rot, 0deg) - 7deg)) scale(.8); }
+  to { opacity: 0; transform: translateY(-46px) rotate(calc(var(--rot, 0deg) - 5deg)) scale(.86); }
 }
 @keyframes pIn {
-  from { opacity: 0; transform: translateY(-34px) rotate(calc(var(--rot, 0deg) + 6deg)) scale(1.14); }
+  from { opacity: 0; transform: translateY(46px) rotate(calc(var(--rot, 0deg) + 5deg)) scale(.92); }
   to { opacity: 1; transform: rotate(var(--rot, 0deg)); }
 }
 

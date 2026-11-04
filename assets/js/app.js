@@ -110,8 +110,8 @@
   }
 
   /* ---------------- 胶片拼贴：随机抽样，每 30s 换一批 ---------------- */
-  const CL_SLOTS = 5, CL_GAP = 112, CL_SWAP_MS = 30000, CL_SWAP_N = 2;
-  const CL_ROTS = [-11, -5, 0, 6, 12];
+  const CL_SLOTS = 5, CL_GAP = 112, CL_SWAP_MS = 10000;
+  const CL_ROTS = [-14, -7, 0, 7, 14];
 
   function renderCollage() {
     const box = $('#heroCollage');
@@ -140,7 +140,9 @@
       slots.push({ el: p, it });
     }
 
-    /* 换一批：随机挑槽位，旧卡下沉淡出 → 换图 → 新卡落下淡入 */
+    /* 每 10s 从随机缩略图抽一张新图，按从左往右的顺序轮换槽位：
+       旧图向上抽出 → 换图 → 新图从下往上插入 */
+    let next = 0;
     const swapSlot = (slot) => {
       slot.el.classList.add('p-out');
       setTimeout(() => {
@@ -150,13 +152,13 @@
         slot.el.querySelector('img').src = it.th;
         slot.el.classList.remove('p-out');
         slot.el.classList.add('p-in');
-        setTimeout(() => slot.el.classList.remove('p-in'), 650);
-      }, 480);
+        setTimeout(() => slot.el.classList.remove('p-in'), 600);
+      }, 450);
     };
     setInterval(() => {
       if (document.hidden) return;
-      const idxs = slots.map((_, i) => i).sort(() => Math.random() - 0.5).slice(0, CL_SWAP_N);
-      idxs.forEach((i, k) => setTimeout(() => swapSlot(slots[i]), k * 300));
+      swapSlot(slots[next]);
+      next = (next + 1) % CL_SLOTS;
     }, CL_SWAP_MS);
   }
 
