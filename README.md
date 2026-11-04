@@ -7,7 +7,14 @@
 - `index.html` 相册首页 · `login.html` 登录页
 - `assets/` 样式与脚本（`auth.js` 入场守卫 / `login.js` 登录 / `app.js` 浏览逻辑）
 - `gallery/data.enc.js` 加密后的清单 · `gallery/thumbs/` 缩略图
-- `resources/` 原始图片与视频
+- `resources/` 原始图片与视频（**只存本地，不入库**）
+
+## 资源托管
+
+- 原图与视频托管在**七牛云 Kodo**，CDN 加速域名 `https://oss.zyall.com/`（空间内容对应 `resources/` 目录）。
+- `app.js` 顶部的 `RES_BASE` 是资源基地址，`resURL()` 按路径段做 URL 编码（中文目录名必须编码）。
+- 七牛开了 **Referer 防盗链**（拒绝空 Referer）：浏览器从 `xtt.zyall.com` 发请求会自带 Referer，正常；直接在地址栏打开图片链接会被 403，这是预期行为。
+- 线上部署：代码与缩略图走 GitHub Pages（`deploy` 分支），`resources/` 不进 git，往七牛同步用 `qshell qupload` 等工具。
 
 ## 新增 / 删除资源后怎么重建
 

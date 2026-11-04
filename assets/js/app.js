@@ -17,6 +17,10 @@
   const ITEMS = DATA.items.map((it, i) => ({ ...it, id: i }));
   const PER_PAGE = 30;
   const UNDATED = 'none';
+  /* 原图/视频托管在七牛云 Kodo（CDN 加速域名），缩略图仍走本站；
+     中文目录名等需按段编码，否则 CDN 404 */
+  const RES_BASE = 'https://oss.zyall.com/';
+  const resURL = (p) => RES_BASE + p.split('/').map(encodeURIComponent).join('/');
   /* 仅用于静态截图/降级：?reveal=all 直接显示全部卡片，不做入场动画 */
   const FORCE_REVEAL = /[?&]reveal=all/.test(location.search) || !('IntersectionObserver' in window);
   /* 年份目录本身就是时间线，不再重复出现在分组里 */
@@ -235,7 +239,7 @@
       done();
     }, { once: true });
     setTimeout(done, 6000);
-    v.src = 'resources/' + it.p;
+    v.src = resURL(it.p);
     const old = card.querySelector('img.thumb');
     if (old) old.replaceWith(v); else card.insertBefore(v, card.firstChild);
   }
@@ -247,7 +251,7 @@
     c.setAttribute('role', 'button');
     c.setAttribute('aria-label', `${it.a} ${itemDateText(it)}`);
 
-    const src = it.t === 'v' ? null : (it.th || ('resources/' + it.p));
+    const src = it.t === 'v' ? null : (it.th || resURL(it.p));
     if (src) {
       const img = el('img', 'thumb');
       img.loading = 'lazy';
@@ -255,7 +259,7 @@
       img.alt = it.n;
       img.src = src;
       img.onerror = () => {
-        if (!img.dataset.fb) { img.dataset.fb = '1'; img.src = 'resources/' + it.p; }
+        if (!img.dataset.fb && it.th) { img.dataset.fb = '1'; img.src = resURL(it.p); }
         else img.src = PLACEHOLDER;
       };
       c.appendChild(img);
@@ -406,7 +410,7 @@
 
     if (it.t === 'v') {
       const v = document.createElement('video');
-      v.src = 'resources/' + it.p;
+      v.src = resURL(it.p);
       v.controls = true; v.autoplay = true; v.playsInline = true;
       v.preload = 'metadata';
       v.addEventListener('error', () => {
@@ -418,7 +422,7 @@
       lbFig.appendChild(v);
     } else {
       const img = document.createElement('img');
-      img.src = 'resources/' + it.p;
+      img.src = resURL(it.p);
       img.alt = it.n;
       img.decoding = 'async';
       /* 扩展名异常的原图可能无法解码，退回缩略图 */
