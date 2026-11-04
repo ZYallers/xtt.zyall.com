@@ -500,8 +500,17 @@ body {
   border-radius: 10px; display: block;
   box-shadow: 0 40px 90px -30px rgba(0, 0, 0, .8), 0 0 0 1px rgba(255, 255, 255, .12);
   background: #1a1209;
-  animation: imgIn .45s var(--ease) both;
 }
+/* 图片动画只做淡入：填充动画会覆盖内联 transform，缩放要靠内联样式 */
+.lb-figure video { animation: imgIn .45s var(--ease) both; }
+.lb-figure img {
+  animation: imgInFade .45s var(--ease) both;
+  touch-action: none; user-select: none; -webkit-user-drag: none;
+  cursor: zoom-in; will-change: transform;
+}
+.lb-figure img.zmed { cursor: grab; }
+.lb-figure img.zgrab { cursor: grabbing; }
+@keyframes imgInFade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes imgIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
 
 .lb-btn {

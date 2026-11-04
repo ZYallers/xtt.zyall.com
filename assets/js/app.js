@@ -401,6 +401,149 @@
     showLightbox();
   }
 
+  /* ---------------- 灯箱图片缩放：滚轮（桌面）/ 双指捏合（移动）/ 拖拽平移 ---------------- */
+  const ZOOM_MAX = 8;
+  let zImg = null, zScale = 1, zTx = 0, zTy = 0;
+
+  function zClampPan() {
+    /* 放大后允许平移的范围 = 溢出尺寸的一半，保证图不会拖出屏幕 */
+    const r = zImg.getBoundingClientRect();
+    const limX = Math.max(0, (r.width - r.width / zScale) / 2);
+    const limY = Math.max(0, (r.height - r.height / zScale) / 2);
+    zTx = Math.min(limX, Math.max(-limX, zTx));
+    zTy = Math.min(limY, Math.max(-limY, zTy));
+  }
+  function zApply() {
+    zImg.style.transform = `translate(${zTx}px, ${zTy}px) scale(${zScale})`;
+    zImg.classList.toggle('zmed', zScale > 1);
+  }
+  function zReset(smooth) {
+    zScale = 1; zTx = 0; zTy = 0;
+    if (!zImg) return;
+    if (smooth) {
+      zImg.style.transition = 'transform .3s var(--ease)';
+      zApply();
+      setTimeout(() => { if (zImg) zImg.style.transition = ''; }, 320);
+    } else zApply();
+  }
+  function zoomBind(img) {
+    zImg = img;
+    img.draggable = false;
+    zReset(false);
+  }
+
+  /* 桌面：滚轮以鼠标位置为锚点缩放 */
+  lb.addEventListener('wheel', (e) => {
+    if (lb.hidden || !zImg || !zImg.isConnected) return;
+    e.preventDefault();
+    const ns = Math.min(ZOOM_MAX, Math.max(1, zScale * (e.deltaY < 0 ? 1.18 : 1 / 1.18)));
+    if (ns === zScale) return;
+    const r = zImg.getBoundingClientRect();
+    const cx = e.clientX - (r.left + r.width / 2);
+    const cy = e.clientY - (r.top + r.height / 2);
+    const k = ns / zScale;
+    zTx = cx - k * (cx - zTx);
+    zTy = cy - k * (cy - zTy);
+    zScale = ns;
+    if (zScale === 1) { zTx = 0; zTy = 0; } else zClampPan();
+    zApply();
+  }, { passive: false });
+
+  /* 移动：双指捏合缩放（锚点跟随双指中心），单指放大后平移 */
+  let pinch = null, pan = null, drag = null;
+  lb.addEventListener('touchstart', (e) => {
+    if (lb.hidden) return;
+    if (e.touches.length === 2 && zImg && zImg.isConnected) {
+      const [a, b] = e.touches;
+      const r = zImg.getBoundingClientRect();
+      pinch = {
+        d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1,
+        s: zScale, tx: zTx, ty: zTy,
+        mx: (a.clientX + b.clientX) / 2, my: (a.clientY + b.clientY) / 2,
+        cx: r.left + r.width / 2, cy: r.top + r.height / 2
+      };
+      pan = null;
+    } else if (e.touches.length === 1 && zScale > 1 && zImg) {
+      pan = { x: e.touches[0].clientX, y: e.touches[0].clientY, tx: zTx, ty: zTy };
+    }
+  }, { passive: true });
+
+  lb.addEventListener('touchmove', (e) => {
+    if (pinch && e.touches.length === 2 && zImg) {
+      e.preventDefault();
+      const [a, b] = e.touches;
+      const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1;
+      const ns = Math.min(ZOOM_MAX, Math.max(1, pinch.s * (d / pinch.d)));
+      zScale = ns;
+      if (ns === 1) { zTx = 0; zTy = 0; }
+      else {
+        const mx = (a.clientX + b.clientX) / 2, my = (a.clientY + b.clientY) / 2;
+        const p0x = (pinch.mx - pinch.cx) / pinch.s;   /* 起始锚点的图像局部坐标 */
+        const p0y = (pinch.my - pinch.cy) / pinch.s;
+        zTx = mx - pinch.cx + pinch.tx - ns * p0x;
+        zTy = my - pinch.cy + pinch.ty - ns * p0y;
+        zClampPan();
+      }
+      zApply();
+    } else if (pan && e.touches.length === 1 && zScale > 1 && zImg) {
+      e.preventDefault();
+      zTx = pan.tx + (e.touches[0].clientX - pan.x);
+      zTy = pan.ty + (e.touches[0].clientY - pan.y);
+      zClampPan();
+      zApply();
+    }
+  }, { passive: false });
+
+  /* 手指抬起：清掉捏合/平移状态，剩下的单指可无缝转平移 */
+  let lastPinchEnd = 0;
+  lb.addEventListener('touchend', (e) => {
+    if (pinch && e.touches.length < 2) {
+      pinch = null;
+      lastPinchEnd = Date.now();
+      if (e.touches.length === 1 && zScale > 1 && zImg) {
+        pan = { x: e.touches[0].clientX, y: e.touches[0].clientY, tx: zTx, ty: zTy };
+      }
+    }
+    if (!e.touches.length) pan = null;
+  }, { passive: true });
+
+  /* 桌面：放大后按住拖拽平移 */
+  lb.addEventListener('mousedown', (e) => {
+    if (lb.hidden || zScale <= 1 || !zImg || !zImg.isConnected || e.button !== 0) return;
+    drag = { x: e.clientX, y: e.clientY, tx: zTx, ty: zTy };
+    zImg.classList.add('zgrab');
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!drag || !zImg) return;
+    zTx = drag.tx + (e.clientX - drag.x);
+    zTy = drag.ty + (e.clientY - drag.y);
+    zClampPan();
+    zApply();
+  });
+  window.addEventListener('mouseup', () => {
+    if (!drag) return;
+    drag = null;
+    if (zImg) zImg.classList.remove('zgrab');
+  });
+
+  /* 双击：放大到 2.5x / 复位 */
+  lbFig.addEventListener('dblclick', (e) => {
+    if (!zImg || !zImg.isConnected) return;
+    e.preventDefault();
+    if (zScale > 1) { zReset(true); return; }
+    const ns = 2.5;
+    const r = zImg.getBoundingClientRect();
+    const cx = e.clientX - (r.left + r.width / 2);
+    const cy = e.clientY - (r.top + r.height / 2);
+    const k = ns / zScale;
+    zTx = cx - k * (cx - zTx);
+    zTy = cy - k * (cy - zTy);
+    zScale = ns;
+    zClampPan();
+    zApply();
+  });
+
   function showLightbox() {
     const it = lbList[lbIndex];
     if (!it) return;
@@ -409,15 +552,23 @@
     lbFig.innerHTML = '';
 
     if (it.t === 'v') {
+      zImg = null;
       const v = document.createElement('video');
       v.src = resURL(it.p);
       v.controls = true; v.autoplay = true; v.playsInline = true;
       v.preload = 'metadata';
       v.addEventListener('error', () => {
-        lbFig.innerHTML = `<div class="lb-broken">
-          <b>这个文件暂时放不出来</b>
-          <span>扩展名是 <code>${esc(it.p.split('.').pop())}</code>，实际是视频格式，<br>重命名成 <code>.mp4</code> 就能正常播放。</span>
-        </div>`;
+        const c = v.error && v.error.code;
+        const netFail = c === 1 || c === 2;   /* ABORTED / NETWORK */
+        lbFig.innerHTML = netFail
+          ? `<div class="lb-broken">
+              <b>这个视频没加载出来</b>
+              <span>网络或 CDN 稍不稳定，关掉再点一次试试。</span>
+            </div>`
+          : `<div class="lb-broken">
+              <b>这个文件暂时放不出来</b>
+              <span>扩展名是 <code>${esc(it.p.split('.').pop())}</code>，实际是视频格式，<br>重命名成 <code>.mp4</code> 就能正常播放。</span>
+            </div>`;
       }, { once: true });
       lbFig.appendChild(v);
     } else {
@@ -428,6 +579,7 @@
       /* 扩展名异常的原图可能无法解码，退回缩略图 */
       img.onerror = () => { if (it.th) img.src = it.th; };
       lbFig.appendChild(img);
+      zoomBind(img);
     }
 
     const p = dParts(it.d);
@@ -440,6 +592,7 @@
   function closeLightbox() {
     lb.hidden = true;
     lbFig.innerHTML = '';
+    zImg = null; pinch = null; pan = null; drag = null;
     document.body.style.overflow = '';
   }
 
@@ -461,10 +614,14 @@
     else if (e.key === 'ArrowRight') stepLightbox(1);
   });
 
-  /* 触屏左右滑动 */
+  /* 触屏左右滑动翻页（放大查看时不翻页，让位给拖拽平移） */
   let tStartX = 0;
-  lb.addEventListener('touchstart', (e) => { tStartX = e.touches[0].clientX; }, { passive: true });
+  lb.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) tStartX = e.touches[0].clientX;
+  }, { passive: true });
   lb.addEventListener('touchend', (e) => {
+    if (pinch || zScale > 1 || e.touches.length) return;
+    if (Date.now() - lastPinchEnd < 350) return;   /* 捏合刚结束不当作滑动 */
     const dx = e.changedTouches[0].clientX - tStartX;
     if (Math.abs(dx) > 60) stepLightbox(dx > 0 ? -1 : 1);
   }, { passive: true });
