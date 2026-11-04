@@ -134,7 +134,7 @@ body {
 }
 /* 外层管定位与 hover 抽牌，内层卡片跑摆动/换图动画，互不打架 */
 .polaroid {
-  position: absolute; width: clamp(112px, 14.5vw, 170px); aspect-ratio: 3 / 4;
+  position: absolute; width: clamp(104px, 12.5vw, 148px); aspect-ratio: 3 / 4;
   left: 50%; top: 34px;
   transform: translateX(-50%);
   z-index: var(--z, 10);

@@ -110,8 +110,8 @@
   }
 
   /* ---------------- 胶片拼贴：随机抽样，每 10s 从左到右轮换一张 ---------------- */
-  const CL_SLOTS = 5, CL_GAP = 112, CL_SWAP_MS = 10000;
-  const CL_ROTS = [-11, -5, 0, 6, 12];
+  const CL_SLOTS = 7, CL_GAP = 108, CL_SWAP_MS = 10000;
+  const CL_ROTS = [-22, -15, -8, 0, 8, 15, 22];
 
   function renderCollage() {
     const box = $('#heroCollage');
