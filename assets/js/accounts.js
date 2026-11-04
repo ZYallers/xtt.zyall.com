@@ -1,0 +1,2 @@
+/* 登录凭据：仅存 PBKDF2 派生后的密文，不含明文密码 */
+window.ACCOUNTS={"v":1,"it":310000,"users":[{"u":"钟永标","s":"Ls1UzkFpNMI0hbGBc9I4cA==","i":"iB++ira/wJbsWDFe","k":"AIebA1AD+NGena24ha7+Rq+vN4RSjRXWHa7l0ZCriuZSH12YHnZxfYHu+4ZLF7ce"},{"u":"曾秀","s":"tWAsT+ITMui03xRm+JllSA==","i":"Sfvwk2MLgiR4tia6","k":"Cs00pSb4epV6aFCzrjNUANY8UUu/lwaWM5RKc7ieMvb34Isr5ccXOI0bQy3dr5o/"},{"u":"钟启天","s":"g/VVWFgI5Rfyeq+5p6sCcg==","i":"HsTLaCQ06di5DHAw","k":"pNWee+FbP059Ph5upyjaO3wkuGfQT8e2Eutwk8n9gmNkBKgxr9MN6hcrzSPsUsq5"}]};
