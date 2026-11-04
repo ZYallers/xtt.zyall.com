@@ -109,25 +109,55 @@
     $('#genTime').textContent = DATA.generated || '—';
   }
 
-  /* ---------------- 胶片拼贴 ---------------- */
+  /* ---------------- 胶片拼贴：随机抽样，每 30s 换一批 ---------------- */
+  const CL_SLOTS = 5, CL_GAP = 112, CL_SWAP_MS = 30000, CL_SWAP_N = 2;
+  const CL_ROTS = [-11, -5, 0, 6, 12];
+
   function renderCollage() {
     const box = $('#heroCollage');
     if (!box) return;
     const pool = ITEMS.filter((i) => i.th && i.t === 'i');
-    const picks = [];
-    const step = Math.max(1, Math.floor(pool.length / 5));
-    for (let i = 0; i < pool.length && picks.length < 5; i += step) picks.push(pool[i]);
-    const rots = [-11, -5, 0, 6, 12];
-    picks.forEach((it, i) => {
+    if (pool.length <= CL_SLOTS) return;
+    const shown = new Set();
+    const take = () => {
+      const avail = pool.filter((p) => !shown.has(p));
+      const it = avail[Math.floor(Math.random() * avail.length)];
+      shown.add(it);
+      return it;
+    };
+
+    const slots = [];
+    for (let i = 0; i < CL_SLOTS; i++) {
+      const it = take();
       const p = el('div', 'polaroid');
-      const x = (i - (picks.length - 1) / 2) * 72;
-      p.style.setProperty('--rot', rots[i] + 'deg');
-      p.style.marginLeft = x + 'px';
-      p.style.zIndex = String(10 - Math.abs(i - 2));
-      p.style.animationDelay = (i * 0.35) + 's';
-      p.innerHTML = `<img src="${it.th}" alt="" loading="lazy">`;
+      p.innerHTML = `<div class="polaroid-card"><img src="${it.th}" alt="" loading="lazy"></div>`;
+      p.style.setProperty('--rot', CL_ROTS[i] + 'deg');
+      p.style.setProperty('--z', String(10 - Math.abs(i - (CL_SLOTS - 1) / 2)));
+      p.style.marginLeft = ((i - (CL_SLOTS - 1) / 2) * CL_GAP) + 'px';
+      /* 负延迟只错开摆动相位，不产生等待 */
+      p.firstChild.style.animationDelay = (-i * 1.3) + 's';
       box.appendChild(p);
-    });
+      slots.push({ el: p, it });
+    }
+
+    /* 换一批：随机挑槽位，旧卡下沉淡出 → 换图 → 新卡落下淡入 */
+    const swapSlot = (slot) => {
+      slot.el.classList.add('p-out');
+      setTimeout(() => {
+        const it = take();
+        shown.delete(slot.it);
+        slot.it = it;
+        slot.el.querySelector('img').src = it.th;
+        slot.el.classList.remove('p-out');
+        slot.el.classList.add('p-in');
+        setTimeout(() => slot.el.classList.remove('p-in'), 650);
+      }, 480);
+    };
+    setInterval(() => {
+      if (document.hidden) return;
+      const idxs = slots.map((_, i) => i).sort(() => Math.random() - 0.5).slice(0, CL_SWAP_N);
+      idxs.forEach((i, k) => setTimeout(() => swapSlot(slots[i]), k * 300));
+    }, CL_SWAP_MS);
   }
 
   /* ---------------- 微尘 ---------------- */
