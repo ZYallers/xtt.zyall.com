@@ -109,9 +109,11 @@
     $('#genTime').textContent = DATA.generated || '—';
   }
 
-  /* ---------------- 胶片拼贴：随机抽样，每 30s 换一批 ---------------- */
-  const CL_SLOTS = 5, CL_GAP = 112, CL_SWAP_MS = 10000;
-  const CL_ROTS = [-14, -7, 0, 7, 14];
+  /* ---------------- 胶片拼贴：扇形展开，每 10s 从左到右轮换一张 ---------------- */
+  const CL_SLOTS = 5, CL_SWAP_MS = 10000;
+  const CL_ROTS = [-22, -11, 0, 11, 22];
+  const CL_R = 330;   /* 扇骨半径：所有卡片绕同一个底部支点展开 */
+  const CL_TOP = 64;  /* 中间卡片的顶部位置 */
 
   function renderCollage() {
     const box = $('#heroCollage');
@@ -131,29 +133,43 @@
       const it = take();
       const p = el('div', 'polaroid');
       p.innerHTML = `<div class="polaroid-card"><img src="${it.th}" alt="" loading="lazy"></div>`;
+      const rad = CL_ROTS[i] * Math.PI / 180;
       p.style.setProperty('--rot', CL_ROTS[i] + 'deg');
       p.style.setProperty('--z', String(10 - Math.abs(i - (CL_SLOTS - 1) / 2)));
-      p.style.marginLeft = ((i - (CL_SLOTS - 1) / 2) * CL_GAP) + 'px';
+      /* 沿扇骨弧线就位：底中心绕同一支点分布，越往外抬得越高、转得越多 */
+      p.style.marginLeft = (CL_R * Math.sin(rad)) + 'px';
+      p.style.top = (CL_TOP - CL_R * (1 - Math.cos(rad))) + 'px';
       /* 负延迟只错开摆动相位，不产生等待 */
       p.firstChild.style.animationDelay = (-i * 1.3) + 's';
       box.appendChild(p);
       slots.push({ el: p, it });
     }
 
-    /* 每 10s 从随机缩略图抽一张新图，按从左往右的顺序轮换槽位：
-       旧图向上抽出 → 换图 → 新图从下往上插入 */
+    /* 每 10s 从随机缩略图抽一张新图，按从左往右的顺序轮换槽位。
+       先等新图加载完，再让新旧两张图在卡片框内同步上滑（胶片式）：
+       旧图向上滑出、新图从底部跟进，框与摆动动画全程不动，不抖不空。 */
     let next = 0;
     const swapSlot = (slot) => {
-      slot.el.classList.add('p-out');
-      setTimeout(() => {
-        const it = take();
-        shown.delete(slot.it);
+      const card = slot.el.firstChild;
+      const oldImg = card.querySelector('img');
+      const it = take();
+      shown.delete(slot.it);
+      const pre = new Image();
+      pre.onload = () => {
         slot.it = it;
-        slot.el.querySelector('img').src = it.th;
-        slot.el.classList.remove('p-out');
-        slot.el.classList.add('p-in');
-        setTimeout(() => slot.el.classList.remove('p-in'), 600);
-      }, 450);
+        const nimg = document.createElement('img');
+        nimg.src = it.th;
+        nimg.alt = '';
+        nimg.className = 'cl-pre';
+        card.appendChild(nimg);
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          oldImg.classList.add('cl-out');
+          nimg.classList.remove('cl-pre');
+          setTimeout(() => oldImg.remove(), 560);
+        }));
+      };
+      pre.onerror = () => shown.add(it); /* 加载失败放弃这张，保留旧图 */
+      pre.src = it.th;
     };
     setInterval(() => {
       if (document.hidden) return;

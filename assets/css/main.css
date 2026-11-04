@@ -130,12 +130,12 @@ body {
 .stat span { font-size: 12px; letter-spacing: .16em; color: var(--ink-soft); }
 
 .hero-collage {
-  position: relative; height: clamp(200px, 27vw, 268px); margin-top: 34px;
+  position: relative; height: clamp(220px, 30vw, 300px); margin-top: 34px;
 }
-/* 外层管定位与 hover 抽牌，内层卡片跑摆动/换卡动画，互不打架 */
+/* 外层管定位与 hover 抽牌，内层卡片跑摆动/换图动画，互不打架 */
 .polaroid {
   position: absolute; width: clamp(112px, 14.5vw, 170px); aspect-ratio: 3 / 4;
-  left: 50%; top: 34px;
+  left: 50%; top: 64px;
   transform: translateX(-50%);
   z-index: var(--z, 10);
   transition: transform .4s var(--ease);
@@ -145,28 +145,29 @@ body {
   transform: translateX(-50%) translateY(-10px) scale(1.05);
   z-index: 30;
 }
-/* 旋转轴在底部，5 张卡以底部为轴向两侧张开成扇形 */
-.polaroid-card { width: 100%; height: 100%; transform-origin: 50% 100%; animation: sway 9s ease-in-out infinite; }
-.polaroid img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: block; filter: saturate(.92) contrast(1.02); box-shadow: var(--shadow-2); }
+/* 旋转轴在底部；卡片框 overflow:hidden 让新旧图在框内滑动（胶片式换图） */
+.polaroid-card {
+  position: relative; width: 100%; height: 100%;
+  overflow: hidden; border-radius: 10px; box-shadow: var(--shadow-2);
+  transform-origin: 50% 100%;
+  animation: sway 9s ease-in-out infinite;
+}
+.polaroid img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; display: block; filter: saturate(.92) contrast(1.02);
+  transition: transform .5s var(--ease);
+}
+/* 换图：旧图向上滑出框，新图从框底滑入，两图同步移动严丝合缝 */
+.polaroid img.cl-out { transform: translateY(-103%); }
+.polaroid img.cl-pre { transform: translateY(103%); }
 .polaroid::after {
   content: ""; position: absolute; inset: 0; border-radius: 10px;
   box-shadow: inset 0 0 24px rgba(140, 100, 50, .15);
   pointer-events: none;
 }
-.polaroid.p-out .polaroid-card { animation: pOut .45s var(--ease) forwards; }
-.polaroid.p-in .polaroid-card { animation: pIn .5s var(--ease) both; }
 @keyframes sway {
   0%, 100% { transform: rotate(var(--rot, 0deg)); }
   50% { transform: translateY(-12px) rotate(calc(var(--rot, 0deg) + 1.6deg)); }
-}
-/* 换卡：旧图向上抽出，新图从下往上插入 */
-@keyframes pOut {
-  from { opacity: 1; transform: rotate(var(--rot, 0deg)); }
-  to { opacity: 0; transform: translateY(-46px) rotate(calc(var(--rot, 0deg) - 5deg)) scale(.86); }
-}
-@keyframes pIn {
-  from { opacity: 0; transform: translateY(46px) rotate(calc(var(--rot, 0deg) + 5deg)) scale(.92); }
-  to { opacity: 1; transform: rotate(var(--rot, 0deg)); }
 }
 
 .hero-scroll {
