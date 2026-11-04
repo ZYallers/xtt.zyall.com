@@ -109,11 +109,9 @@
     $('#genTime').textContent = DATA.generated || '—';
   }
 
-  /* ---------------- 胶片拼贴：扇形展开，每 10s 从左到右轮换一张 ---------------- */
-  const CL_SLOTS = 5, CL_SWAP_MS = 10000;
-  const CL_ROTS = [-22, -11, 0, 11, 22];
-  const CL_R = 330;   /* 扇骨半径：所有卡片绕同一个底部支点展开 */
-  const CL_TOP = 64;  /* 中间卡片的顶部位置 */
+  /* ---------------- 胶片拼贴：随机抽样，每 10s 从左到右轮换一张 ---------------- */
+  const CL_SLOTS = 5, CL_GAP = 112, CL_SWAP_MS = 10000;
+  const CL_ROTS = [-11, -5, 0, 6, 12];
 
   function renderCollage() {
     const box = $('#heroCollage');
@@ -133,12 +131,9 @@
       const it = take();
       const p = el('div', 'polaroid');
       p.innerHTML = `<div class="polaroid-card"><img src="${it.th}" alt="" loading="lazy"></div>`;
-      const rad = CL_ROTS[i] * Math.PI / 180;
       p.style.setProperty('--rot', CL_ROTS[i] + 'deg');
       p.style.setProperty('--z', String(10 - Math.abs(i - (CL_SLOTS - 1) / 2)));
-      /* 沿扇骨弧线就位：底中心绕同一支点分布，越往外抬得越高、转得越多 */
-      p.style.marginLeft = (CL_R * Math.sin(rad)) + 'px';
-      p.style.top = (CL_TOP - CL_R * (1 - Math.cos(rad))) + 'px';
+      p.style.marginLeft = ((i - (CL_SLOTS - 1) / 2) * CL_GAP) + 'px';
       /* 负延迟只错开摆动相位，不产生等待 */
       p.firstChild.style.animationDelay = (-i * 1.3) + 's';
       box.appendChild(p);
