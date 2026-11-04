@@ -131,13 +131,17 @@
       const it = take();
       const p = el('div', 'polaroid');
       p.innerHTML = `<div class="polaroid-card"><img src="${it.th}" alt="" loading="lazy"></div>`;
+      const slot = { el: p, it };
+      /* 点击拼贴卡片 = 打开灯箱看原图，左右翻页按时间序走全部照片 */
+      p.firstChild.style.cursor = 'pointer';
+      p.firstChild.addEventListener('click', () => openLightbox(slot.it.id, pool));
       p.style.setProperty('--rot', CL_ROTS[i] + 'deg');
       p.style.setProperty('--z', String(10 - Math.abs(i - (CL_SLOTS - 1) / 2)));
       p.style.marginLeft = ((i - (CL_SLOTS - 1) / 2) * CL_GAP) + 'px';
       /* 负延迟只错开摆动相位，不产生等待 */
       p.firstChild.style.animationDelay = (-i * 1.3) + 's';
       box.appendChild(p);
-      slots.push({ el: p, it });
+      slots.push(slot);
     }
 
     /* 每 10s 从随机缩略图抽一张新图，按从左往右的顺序轮换槽位。
@@ -437,9 +441,11 @@
   let lbList = [];
   let lbIndex = 0;
 
-  function openLightbox(id) {
-    lbList = currentList();
+  function openLightbox(id, list) {
+    /* list 可选：拼贴等场景传入自定义播放列表（如全部照片按时间序） */
+    lbList = list || currentList();
     lbIndex = lbList.findIndex((x) => x.id === id);
+    if (lbIndex < 0) { lbList = currentList(); lbIndex = lbList.findIndex((x) => x.id === id); }
     if (lbIndex < 0) lbIndex = 0;
     showLightbox();
   }
