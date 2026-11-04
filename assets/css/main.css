@@ -170,20 +170,66 @@ body {
   50% { transform: translateY(-12px) rotate(calc(var(--rot, 0deg) + 1.6deg)); }
 }
 
+/* 下滑引导：长轨道 + 滑动光点 + SCROLL 呼吸字标 */
 .hero-scroll {
-  display: inline-flex; width: 26px; height: 42px; margin-top: 26px;
-  border: 1.5px solid rgba(185, 111, 34, .45); border-radius: 14px;
-  justify-content: center; padding-top: 7px;
+  position: relative; display: inline-flex; flex-direction: column;
+  align-items: center; gap: 11px; margin-top: 30px;
+  text-decoration: none;
+  animation: scrollBob 3.6s ease-in-out infinite;
 }
 .hero-scroll span {
-  width: 3px; height: 8px; border-radius: 2px; background: var(--amber);
-  animation: wheel 1.9s ease-in-out infinite;
+  position: relative;
+  display: inline-flex; justify-content: center;
+  width: 30px; height: 58px; padding-top: 9px;
+  border: 1.5px solid rgba(185, 111, 34, .5); border-radius: 17px;
+  background: linear-gradient(180deg, rgba(255, 251, 243, .55), rgba(255, 240, 214, .12));
+  box-shadow: inset 0 1px 4px rgba(255, 255, 255, .65), 0 8px 22px -12px rgba(150, 90, 20, .45);
+  transition: transform .35s var(--ease), border-color .35s var(--ease), box-shadow .35s var(--ease);
+}
+/* 外圈涟漪：轻轻荡开又消失，暗示「往下」 */
+.hero-scroll span::after {
+  content: ""; position: absolute; inset: -6px; border-radius: 22px;
+  border: 1px solid rgba(185, 111, 34, .3);
+  animation: scrollRing 2.2s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes scrollRing {
+  0% { opacity: .6; transform: scale(.92); }
+  70%, 100% { opacity: 0; transform: scale(1.14); }
+}
+@keyframes scrollBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+.hero-scroll span::before {
+  content: ""; width: 4px; height: 11px; border-radius: 3px;
+  background: linear-gradient(180deg, #ffd9a0, var(--amber));
+  box-shadow: 0 0 8px rgba(214, 150, 60, .55);
+  animation: wheel 2.2s cubic-bezier(.5, .05, .35, 1) infinite;
+}
+.hero-scroll::after {
+  content: "SCROLL"; font-size: 9px; font-weight: 600;
+  letter-spacing: .4em; text-indent: .4em;
+  color: rgba(150, 92, 24, .75);
+  animation: scrollTip 2.2s ease-in-out infinite;
 }
 @keyframes wheel {
-  0% { opacity: 0; transform: translateY(-3px); }
-  40% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(14px); }
+  0% { opacity: 0; transform: translateY(-5px); }
+  30% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(30px); }
 }
+@keyframes scrollTip {
+  0%, 100% { opacity: .5; }
+  50% { opacity: 1; }
+}
+.hero-scroll:hover span,
+.hero-scroll:focus-visible span {
+  transform: translateY(5px);
+  border-color: rgba(185, 111, 34, .9);
+  box-shadow: inset 0 1px 4px rgba(255, 255, 255, .65), 0 12px 26px -12px rgba(150, 90, 20, .6);
+}
+.hero-scroll:hover::after { color: rgba(140, 82, 16, 1); }
 
 /* ---------- 筛选栏 ---------- */
 .filters {
@@ -565,6 +611,14 @@ body {
 .lb-cap .cap-name.fail { color: #ffb3a0; border-style: solid; border-color: rgba(255, 140, 110, .7); }
 
 /* ---------- 响应式 ---------- */
+/* 矮屏（笔记本常见 800~860 视口）：整块首屏收进一屏，别把下滑引导挤出屏幕 */
+@media (max-height: 860px) {
+  .hero { padding-top: 74px; padding-bottom: 44px; }
+  .hero-collage { height: 214px; margin-top: 22px; }
+  .polaroid { width: clamp(96px, 10.5vw, 132px); top: 26px; }
+  .hero-scroll { margin-top: 14px; gap: 8px; }
+  .hero-scroll span { width: 28px; height: 54px; padding-top: 8px; }
+}
 @media (max-width: 900px) {
   .hero { min-height: 86vh; padding-top: 72px; }
   .hero-collage { display: none; }
