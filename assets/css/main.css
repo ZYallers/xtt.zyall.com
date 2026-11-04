@@ -404,18 +404,6 @@ body {
   padding: 2px 8px; border-radius: 999px; backdrop-filter: blur(4px); font-size: 10.5px;
 }
 
-/* 视频加载态 */
-.card.loading-video .thumb { opacity: .001; }
-.card.loading-video::before {
-  content: ""; position: absolute; inset: 0; z-index: 1;
-  background:
-    linear-gradient(110deg, rgba(244, 230, 209, .6) 8%, rgba(255, 248, 235, .95) 22%, rgba(244, 230, 209, .6) 36%),
-    linear-gradient(135deg, #f4e6d1, #e6d0b2);
-  background-size: 220% 100%, 100% 100%;
-  animation: shimmer 1.5s linear infinite;
-}
-@keyframes shimmer { from { background-position: 120% 0, 0 0; } to { background-position: -60% 0, 0 0; } }
-
 /* 扩展名异常的文件 */
 .bad-mark {
   position: absolute; left: 9px; top: 9px; z-index: 3;

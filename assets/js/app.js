@@ -239,57 +239,10 @@
     entries.forEach((e) => {
       if (e.isIntersecting) {
         e.target.classList.add('in');
-        if (e.target.dataset.video === '1') queueVideo(e.target);
         cardObserver.unobserve(e.target);
       }
     });
   }, { rootMargin: '120px 0px 200px', threshold: 0.01 });
-
-  /* 视频首帧：限制并发，避免一次性请求过多 */
-  const videoQueue = [];
-  let videoActive = 0;
-  const VIDEO_MAX = 4;
-  function queueVideo(card) {
-    videoQueue.push(card);
-    pumpVideo();
-  }
-  function pumpVideo() {
-    while (videoActive < VIDEO_MAX && videoQueue.length) {
-      const card = videoQueue.shift();
-      if (!card.isConnected) continue;
-      loadVideoFrame(card);
-    }
-  }
-  function loadVideoFrame(card) {
-    const it = ITEMS[+card.dataset.id];
-    if (!it || card.dataset.loaded === '1') return;
-    card.dataset.loaded = '1';
-    videoActive++;
-    const v = el('video', 'thumb');
-    v.muted = true; v.playsInline = true; v.preload = 'metadata';
-    v.setAttribute('aria-hidden', 'true');
-    let settled = false;
-    const done = () => {
-      if (settled) return;
-      settled = true;
-      videoActive--;
-      card.classList.remove('loading-video');
-      pumpVideo();
-    };
-    v.addEventListener('loadedmetadata', () => {
-      try { v.currentTime = Math.min(0.5, (v.duration || 1) * 0.12); } catch (_) { done(); }
-    }, { once: true });
-    v.addEventListener('seeked', done, { once: true });
-    v.addEventListener('error', () => {
-      card.classList.add('media-bad');
-      if (!card.querySelector('.bad-mark')) card.appendChild(el('span', 'bad-mark', '格式异常'));
-      done();
-    }, { once: true });
-    setTimeout(done, 6000);
-    v.src = resURL(it.p);
-    const old = card.querySelector('img.thumb');
-    if (old) old.replaceWith(v); else card.insertBefore(v, card.firstChild);
-  }
 
   function cardNode(it) {
     const c = el('article', 'card' + (it.t === 'v' ? ' is-video' : ''));
@@ -298,7 +251,8 @@
     c.setAttribute('role', 'button');
     c.setAttribute('aria-label', `${it.a} ${itemDateText(it)}`);
 
-    const src = it.t === 'v' ? null : (it.th || resURL(it.p));
+    /* 视频也有预生成的封面缩略图；只有点开灯箱才去 CDN 拉原视频 */
+    const src = it.th || (it.t === 'i' ? resURL(it.p) : null);
     if (src) {
       const img = el('img', 'thumb');
       img.loading = 'lazy';
@@ -306,20 +260,25 @@
       img.alt = it.n;
       img.src = src;
       img.onerror = () => {
-        if (!img.dataset.fb && it.th) { img.dataset.fb = '1'; img.src = resURL(it.p); }
+        /* 只有图片才有原图可回退；视频封面挂了就停在占位图，别去拉原视频 */
+        if (!img.dataset.fb && it.t === 'i' && it.th) { img.dataset.fb = '1'; img.src = resURL(it.p); }
         else img.src = PLACEHOLDER;
       };
       c.appendChild(img);
     } else {
-      c.dataset.video = '1';
-      c.classList.add('loading-video');
       const ph = el('img', 'thumb');
       ph.alt = '';
       ph.src = PLACEHOLDER;
-      ph.style.opacity = '0';
       c.appendChild(ph);
     }
-    if (it.t === 'v') c.appendChild(el('div', 'play-badge'));
+    if (it.t === 'v') {
+      c.appendChild(el('div', 'play-badge'));
+      /* 没有封面的视频多半是坏文件，直接标注，不再去 CDN 试帧 */
+      if (!it.th) {
+        c.classList.add('media-bad');
+        c.appendChild(el('span', 'bad-mark', '格式异常'));
+      }
+    }
 
     const meta = el('div', 'card-meta');
     meta.innerHTML = `<span class="cm-date">${itemDateText(it)}</span><span class="cm-tag">${esc(it.a)}</span>`;
@@ -378,10 +337,6 @@
       c.style.transitionDelay = Math.min(i, 12) * 28 + 'ms';
       if (FORCE_REVEAL) { c.classList.add('in'); c.style.transitionDelay = '0ms'; }
       else cardObserver.observe(c);
-    });
-    /* 已加载过的视频卡重新排队 */
-    grid.querySelectorAll('.card[data-video="1"]').forEach((c) => {
-      if (c.dataset.loaded !== '1') queueVideo(c);
     });
 
     $('#resultCount').innerHTML = `共 <b>${list.length}</b> 项${state.q ? ' · 含搜索' : ''}`;
