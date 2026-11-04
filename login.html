@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>时光小屋 · 私密入口</title>
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body class="login-body">
+
+<div class="ambient" aria-hidden="true">
+  <div class="sun-glow"></div>
+  <div class="dust" id="dust"></div>
+  <div class="grain"></div>
+  <div class="vignette"></div>
+</div>
+
+<main class="login-wrap">
+  <section class="login-card" aria-labelledby="loginTitle">
+    <div class="login-mark" aria-hidden="true">
+      <svg viewBox="0 0 96 96" width="76" height="76">
+        <defs>
+          <linearGradient id="photo" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ffe9c8"/><stop offset="1" stop-color="#f0c893"/>
+          </linearGradient>
+          <linearGradient id="lockg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#d99a45"/><stop offset="1" stop-color="#b4701f"/>
+          </linearGradient>
+        </defs>
+        <g transform="rotate(-6 48 48)">
+          <rect x="14" y="12" width="68" height="68" rx="7" fill="#fffdf7" stroke="#e6d5bd"/>
+          <rect x="21" y="19" width="54" height="44" rx="4" fill="url(#photo)"/>
+          <circle cx="34" cy="33" r="6" fill="#fff8ec" opacity=".9"/>
+          <path d="M21 55l14-13 11 10 9-7 20 16v2H21z" fill="#e2b784" opacity=".85"/>
+        </g>
+        <g class="lock-anim">
+          <g transform="translate(52 60) scale(.78) translate(-48 -60)">
+            <path d="M48 40a11 11 0 0 0-11 11v5h6v-5a5 5 0 0 1 10 0v5h6v-5a11 11 0 0 0-11-11z" fill="url(#lockg)"/>
+            <rect x="31" y="54" width="34" height="26" rx="7" fill="url(#lockg)" stroke="#a8651c" stroke-width="1.4"/>
+            <circle cx="48" cy="65" r="3.6" fill="#fff6e6"/>
+            <rect x="46.4" y="66" width="3.2" height="7" rx="1.6" fill="#fff6e6"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <p class="login-kicker">PRIVATE ALBUM</p>
+    <h1 class="login-title" id="loginTitle">时光小屋</h1>
+    <p class="login-sub">这里是只给家里人看的相册<br>先对个暗号</p>
+
+    <form id="loginForm" novalidate autocomplete="on">
+      <label class="field">
+        <span class="field-label">账号</span>
+        <input id="user" name="username" type="text" autocomplete="username"
+               autocapitalize="off" spellcheck="false" placeholder="您的名字" required>
+      </label>
+
+      <label class="field">
+        <span class="field-label">密码</span>
+        <input id="pass" name="password" type="password" autocomplete="current-password"
+               placeholder="••••••" required>
+        <button type="button" class="eye" id="eye" aria-label="显示或隐藏密码" tabindex="-1">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z"/>
+            <circle cx="12" cy="12" r="3.1"/>
+          </svg>
+        </button>
+      </label>
+
+      <p class="login-err" id="loginErr" role="alert" aria-live="polite"></p>
+
+      <label class="remember">
+        <input type="checkbox" id="remember">
+        <span class="cbx" aria-hidden="true"></span>
+        <span class="remember-txt">在这台设备上记住 7 天</span>
+      </label>
+
+      <button class="login-btn" id="submitBtn" type="submit">
+        <span class="btn-text">解 锁</span>
+        <span class="btn-shine" aria-hidden="true"></span>
+      </button>
+    </form>
+
+    <p class="login-bye" id="byeTip" hidden>已安全退出，相册重新上锁</p>
+    <p class="login-foot">密码只在本机校验，不发送、不记录</p>
+  </section>
+
+  <p class="login-tip">
+    &COPY;2026 <a href="https://www.zyall.com/" target="_blank">ZYall</a> All Rights Reserved
+    <a href="https://beian.miit.gov.cn/" target="_blank">粤ICP备15018117号-1</a>
+  </p>
+</main>
+
+<script>
+  /* 微尘：登录页也保留一点空气感 */
+  (function () {
+    var box = document.getElementById('dust');
+    if (!box || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (var i = 0; i < 16; i++) {
+      var d = document.createElement('i');
+      d.className = 'mote';
+      var s = 2 + Math.random() * 4;
+      d.style.width = d.style.height = s + 'px';
+      d.style.left = Math.random() * 100 + '%';
+      d.style.top = (60 + Math.random() * 60) + '%';
+      d.style.animationDuration = (18 + Math.random() * 22) + 's';
+      d.style.animationDelay = (-Math.random() * 30) + 's';
+      d.style.setProperty('--dx', (Math.random() * 60 - 30) + 'px');
+      box.appendChild(d);
+    }
+  })();
+</script>
+<script src="assets/js/accounts.js"></script>
+<script src="assets/js/login.js"></script>
+</body>
+</html>

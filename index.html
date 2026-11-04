@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="auth-pending">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>时光小屋 · 成长相册</title>
+<meta name="description" content="2017—2023 成长影像时间线：按时间与分组浏览照片和视频。">
+<link rel="stylesheet" href="assets/css/main.css">
+<!-- 入场守卫：无有效会话时会在渲染前跳转到 login.html -->
+<script src="assets/js/auth.js"></script>
+</head>
+<body>
+
+<noscript>
+  <p style="padding:40px;font-family:system-ui;color:#7d6553">这个相册需要开启 JavaScript 才能解锁浏览。</p>
+</noscript>
+
+<!-- 顶部用户条 -->
+<div class="userbar" id="userbar" hidden>
+  <span class="ub-dot" aria-hidden="true"></span>
+  <span class="ub-name">—</span>
+  <button class="ub-out" id="logoutBtn" type="button">退出</button>
+</div>
+
+<!-- 顶部光晕与微尘 -->
+<div class="ambient" aria-hidden="true">
+  <div class="sun-glow"></div>
+  <div class="dust" id="dust"></div>
+  <div class="grain"></div>
+  <div class="vignette"></div>
+</div>
+
+<header class="hero" id="top">
+  <div class="hero-inner">
+    <p class="hero-kicker">GROWING UP · 2017 — 2023</p>
+    <h1 class="hero-title">时光小屋<span class="hero-dot">·</span>成长相册</h1>
+    <p class="hero-sub">把散落在年月里的瞬间收起来。<br>沿着时间线往前翻，随手挑一个分组，看看那个小小的他。</p>
+
+    <div class="hero-stats" id="heroStats">
+      <div class="stat"><b id="statAll">0</b><span>影像</span></div>
+      <div class="stat"><b id="statImg">0</b><span>照片</span></div>
+      <div class="stat"><b id="statVid">0</b><span>视频</span></div>
+      <div class="stat"><b id="statAlbum">0</b><span>分组</span></div>
+    </div>
+
+    <div class="hero-collage" id="heroCollage" aria-hidden="true"></div>
+    <a class="hero-scroll" href="#browser" aria-label="开始浏览">
+      <span></span>
+    </a>
+  </div>
+</header>
+
+<main id="browser">
+  <!-- 筛选区 -->
+  <section class="filters" id="filters">
+    <div class="filter-inner">
+      <!-- 常驻：左侧当前条件摘要，右侧折叠开关 -->
+      <div class="filter-head">
+        <span class="filter-summary" id="filterSummary"></span>
+        <button class="filter-toggle" id="filterToggle" type="button"
+                aria-expanded="true" aria-controls="filterBody">
+          <span class="ft-txt">收起筛选</span>
+          <svg class="ft-ico" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 15l6-6 6 6" fill="none" stroke="currentColor"
+                  stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="filter-body" id="filterBody">
+        <div class="fb-inner">
+          <div class="filter-row">
+            <span class="filter-label">时间线</span>
+            <div class="chips" id="yearChips"></div>
+          </div>
+          <div class="filter-row">
+            <span class="filter-label">分组</span>
+            <div class="chips" id="albumChips"></div>
+          </div>
+          <div class="filter-row filter-tools">
+            <div class="segmented" id="typeSeg" role="group" aria-label="类型筛选">
+              <button data-type="all" class="on">全部</button>
+              <button data-type="i">照片</button>
+              <button data-type="v">视频</button>
+            </div>
+            <label class="search">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              <input id="search" type="search" placeholder="搜日期 / 分组 / 文件名…" autocomplete="off">
+            </label>
+            <button class="sort-btn desc" id="sortBtn" title="切换排序">
+              <span class="sort-ico">↑</span><span id="sortTxt">从晚到早</span>
+            </button>
+            <span class="result-count" id="resultCount"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 网格 -->
+  <section class="stage" aria-live="polite">
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden>
+      <div class="empty-mark">◔</div>
+      <p>这里还空着，换个年份或分组看看吧。</p>
+    </div>
+    <nav class="pager" id="pager" aria-label="分页"></nav>
+  </section>
+</main>
+
+<footer class="footer">
+  <p>时光小屋 · 成长相册 · 数据生成于 <span id="genTime">—</span></p>
+  <p class="footer-tip">
+    &COPY;2026 <a href="https://www.zyall.com/" target="_blank">ZYall</a> All Rights Reserved
+    <a href="https://beian.miit.gov.cn/" target="_blank">粤ICP备15018117号-1</a>
+  </p>
+</footer>
+
+<button class="to-top" id="toTop" aria-label="回到顶部">↑</button>
+
+<!-- 灯箱 -->
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lb-backdrop" data-close></div>
+  <div class="lb-stage">
+    <button class="lb-btn lb-prev" id="lbPrev" aria-label="上一张">‹</button>
+    <figure class="lb-figure" id="lbFigure"></figure>
+    <button class="lb-btn lb-next" id="lbNext" aria-label="下一张">›</button>
+    <button class="lb-close" id="lbClose" aria-label="关闭">✕</button>
+    <figcaption class="lb-cap" id="lbCap"></figcaption>
+  </div>
+</div>
+
+<script src="gallery/data.enc.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
