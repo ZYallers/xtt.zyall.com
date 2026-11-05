@@ -1,5 +1,6 @@
 # 照片/视频原图不入库（体积原因，本地另行备份；部署用对象存储或服务器同步）
 resources/
+resources2/
 
 # 工作目录：构建脚本、密钥、备份、日志（content.key 与 data.json 绝不能公开）
 .workbuddy/
