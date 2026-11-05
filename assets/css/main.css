@@ -156,6 +156,8 @@ body {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; display: block; filter: saturate(.92) contrast(1.02);
   transition: transform .5s var(--ease);
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+  -webkit-user-drag: none;
 }
 /* 换图：旧图向上滑出框，新图从框底滑入，两图同步移动严丝合缝 */
 .polaroid img.cl-out { transform: translateY(-103%); }
@@ -407,6 +409,11 @@ body {
   transition: transform .7s var(--ease), filter .4s var(--ease);
   filter: saturate(.95) contrast(1.02) brightness(1.01);
   background: linear-gradient(135deg, #f4e6d1, #e8d3b6);
+  /* 缩略图是 WebP，iOS 长按「存储图像」存不进相册；屏蔽长按菜单，引导点开灯箱存原图 */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 .card:hover .thumb { filter: saturate(1.06) contrast(1.04); }
 
