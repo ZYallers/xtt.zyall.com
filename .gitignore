@@ -2,12 +2,21 @@
 resources/
 resources2/
 
-# 工作目录：构建脚本、密钥、备份、日志（content.key 与 data.json 绝不能公开）
+# ---- .workbuddy：构建脚本入库，敏感与体积大的部分排除 ----
+# 注：~/.gitignore_global 里也有一条 .workbuddy，会挡住整个目录，
+#     所以这里先显式反忽略，再逐项排除（规则按书写顺序后匹配者生效）
+!.workbuddy/
+!.workbuddy/**
+# content.key 与 data.json（明文清单）绝不能公开
 .workbuddy/private/
+# 本机会话记忆，不入库
+.workbuddy/memory/
+# ffmpeg 静态二进制（43MB），按 build_gallery.py 头部提示自行下载
+.workbuddy/bin/
 
 # 系统文件
 .idea/
+.git-backup-20261105/
 .DS_Store
 *.tmp
 *.log
-.git-backup-20261105/
