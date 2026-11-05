@@ -16,7 +16,6 @@ resources2/
 
 # 系统文件
 .idea/
-.git-backup-20261105/
 .DS_Store
 *.tmp
 *.log
