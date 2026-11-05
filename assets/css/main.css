@@ -241,7 +241,7 @@ body {
   transition: box-shadow .3s var(--ease), padding .3s var(--ease);
 }
 .filters.stuck {
-  box-shadow: 0 10px 30px -18px rgba(120, 88, 48, .55); padding-top: 6px;
+  box-shadow: 0 10px 30px -18px rgba(120, 88, 48, .55); padding-top: 4px; padding-bottom: 2px;
   background: linear-gradient(180deg, rgba(252, 246, 236, .975), rgba(252, 246, 236, .93));
   backdrop-filter: saturate(140%) blur(12px);
   -webkit-backdrop-filter: saturate(140%) blur(12px);
@@ -283,7 +283,7 @@ body {
   transition: grid-template-rows .38s var(--ease), opacity .26s var(--ease);
 }
 .fb-inner { min-height: 0; overflow: hidden; }
-.filters.collapsed { padding-bottom: 8px; }
+.filters.collapsed { padding-bottom: 3px; }
 .filters.collapsed .filter-body { grid-template-rows: 0fr; opacity: 0; }
 
 
