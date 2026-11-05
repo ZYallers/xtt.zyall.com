@@ -420,8 +420,7 @@ body {
 .play-badge {
   position: absolute; left: 50%; top: 50%; translate: -50% -50%;
   width: 46px; height: 46px; border-radius: 50%;
-  /*background: rgba(255, 250, 240, .9);*/
-  background: rgba(145, 123, 123, .5);
+  background: rgba(255, 250, 240, .25);
   box-shadow: 0 6px 20px rgba(60, 35, 10, .45);
   display: grid; place-items: center; z-index: 2;
   transition: transform .4s var(--ease), background .3s var(--ease);
