@@ -3,7 +3,7 @@ resources/
 resources2/
 
 # 工作目录：构建脚本、密钥、备份、日志（content.key 与 data.json 绝不能公开）
-.workbuddy/
+.workbuddy/private/
 
 # 系统文件
 .idea/
