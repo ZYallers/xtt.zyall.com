@@ -1,7 +1,8 @@
 # 自定义 GitHub Pages 部署：deploy 分支一有推送就打包发布。
 # 替代内置的 pages-build-deployment，解决两个问题：
-#   1) 内置工作流的 deploy-pages 默认 timeout=600000ms（正好 10 分钟），
-#      部署状态轮询超时就直接失败；这里放宽到 30 分钟并调大容错次数。
+#   1) 内置工作流的 deploy-pages 默认 timeout=600000ms（10 分钟）。这里改成
+#      5 分钟快速失败：卡住就直接判失败，在 Actions 里 Re-run all jobs 重发，
+#      不让一次部署长时间占着队列。
 #   2) 日志按「取代码 / 整理目录 / 上传 / 发布」分步，卡在哪一步一眼可见，
 #      每次运行都能在 Actions 里点 Re-run all jobs 手动重发。
 # 注意：ref 固定为 deploy，手动运行时也只发布 deploy 分支，不会误发 dev / master。
@@ -26,7 +27,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 10           # 打包余量 + 部署上限 5 分钟
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -68,6 +69,6 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
         with:
-          timeout: 1800000        # 30 分钟（默认 600000 = 10 分钟）
+          timeout: 300000         # 5 分钟；失败即 Re-run，不长时间挂起
           error_count: 20         # 状态轮询瞬时报错的容忍次数（默认 10）
           reporting_interval: 10000
