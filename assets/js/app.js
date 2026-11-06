@@ -221,9 +221,8 @@
   /* ---------------- 缩略图懒加载 ----------------
      原生 loading="lazy" 的提前量太大（视口外一两屏都预取），每页 20 张几乎全落在里面，
      等于一进站就把 20 个请求一起发出去，移动端弱网必卡。改成两件事：
-       · 卡片滚到视口前一屏（320px）才入队，更远的一分流量都不花；
+       · 卡片完整进入视口才入队（threshold 0.9，无提前量），更远的一分流量都不花；
        · 队列同时最多 6 个在途，落地一个再发下一个，瞬时并发被压平。 */
-  const THUMB_AHEAD = '320px 0px';
   const THUMB_PARALLEL = 6;
   const thumbQueue = [];
   const thumbLoaded = new Set();   // 本次会话已下过的图，翻页回来直接吃内存缓存
@@ -236,7 +235,7 @@
       thumbQueue.push(e.target);
     });
     pumpThumbs();
-  }, { rootMargin: THUMB_AHEAD });
+  }, { rootMargin: '0px 0px', threshold: 0.9 });
 
   function pumpThumbs() {
     while (thumbInflight < THUMB_PARALLEL && thumbQueue.length) {
@@ -429,8 +428,10 @@
   function goPage(p) {
     state.page = p;
     renderGrid();
+    /* 瞬间跳回顶部：不能用 smooth——平滑滚动会穿过整个网格，每张卡片路过视口时
+       都被懒加载观察器触发入队，等于每次翻页都全量预下载下一页 */
     const top = $('#browser').getBoundingClientRect().top + window.scrollY - 130;
-    window.scrollTo({ top, behavior: 'smooth' });
+    window.scrollTo({ top, behavior: 'instant' });
   }
 
   /* ---------------- 灯箱 ---------------- */
@@ -751,7 +752,8 @@
 
   /* ---------------- 过滤栏折叠（置顶固定后可用） ---------------- */
   const toTop = $('#toTop');
-  toTop.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  /* 同 goPage：smooth 回顶会穿过网格，触发一路全量预下载 */
+  toTop.onclick = () => window.scrollTo({ top: 0, behavior: 'instant' });
 
   const filters = $('#filters');
   const filterToggle = $('#filterToggle');
