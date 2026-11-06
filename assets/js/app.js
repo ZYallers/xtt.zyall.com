@@ -379,44 +379,44 @@
     showLightbox();
   }
 
-  /* ---------------- 灯箱图片缩放：滚轮（桌面）/ 双指捏合（移动）/ 拖拽平移 ---------------- */
+  /* ---------------- 灯箱缩放：图片与视频通用（滚轮 / 双指捏合 / 拖拽平移） ---------------- */
   const ZOOM_MAX = 8;
-  let zImg = null, zScale = 1, zTx = 0, zTy = 0;
+  let zEl = null, zScale = 1, zTx = 0, zTy = 0;
 
   function zClampPan() {
     /* 放大后允许平移的范围 = 溢出尺寸的一半，保证图不会拖出屏幕 */
-    const r = zImg.getBoundingClientRect();
+    const r = zEl.getBoundingClientRect();
     const limX = Math.max(0, (r.width - r.width / zScale) / 2);
     const limY = Math.max(0, (r.height - r.height / zScale) / 2);
     zTx = Math.min(limX, Math.max(-limX, zTx));
     zTy = Math.min(limY, Math.max(-limY, zTy));
   }
   function zApply() {
-    zImg.style.transform = `translate(${zTx}px, ${zTy}px) scale(${zScale})`;
-    zImg.classList.toggle('zmed', zScale > 1);
+    zEl.style.transform = `translate(${zTx}px, ${zTy}px) scale(${zScale})`;
+    zEl.classList.toggle('zmed', zScale > 1);
   }
   function zReset(smooth) {
     zScale = 1; zTx = 0; zTy = 0;
-    if (!zImg) return;
+    if (!zEl) return;
     if (smooth) {
-      zImg.style.transition = 'transform .3s var(--ease)';
+      zEl.style.transition = 'transform .3s var(--ease)';
       zApply();
-      setTimeout(() => { if (zImg) zImg.style.transition = ''; }, 320);
+      setTimeout(() => { if (zEl) zEl.style.transition = ''; }, 320);
     } else zApply();
   }
-  function zoomBind(img) {
-    zImg = img;
-    img.draggable = false;
+  function zoomBind(el) {
+    zEl = el;
+    el.draggable = false;
     zReset(false);
   }
 
   /* 桌面：滚轮以鼠标位置为锚点缩放 */
   lb.addEventListener('wheel', (e) => {
-    if (lb.hidden || !zImg || !zImg.isConnected) return;
+    if (lb.hidden || !zEl || !zEl.isConnected) return;
     e.preventDefault();
     const ns = Math.min(ZOOM_MAX, Math.max(1, zScale * (e.deltaY < 0 ? 1.18 : 1 / 1.18)));
     if (ns === zScale) return;
-    const r = zImg.getBoundingClientRect();
+    const r = zEl.getBoundingClientRect();
     const cx = e.clientX - (r.left + r.width / 2);
     const cy = e.clientY - (r.top + r.height / 2);
     const k = ns / zScale;
@@ -431,9 +431,9 @@
   let pinch = null, pan = null, drag = null;
   lb.addEventListener('touchstart', (e) => {
     if (lb.hidden) return;
-    if (e.touches.length === 2 && zImg && zImg.isConnected) {
+    if (e.touches.length === 2 && zEl && zEl.isConnected) {
       const [a, b] = e.touches;
-      const r = zImg.getBoundingClientRect();
+      const r = zEl.getBoundingClientRect();
       pinch = {
         d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1,
         s: zScale, tx: zTx, ty: zTy,
@@ -441,13 +441,13 @@
         cx: r.left + r.width / 2, cy: r.top + r.height / 2
       };
       pan = null;
-    } else if (e.touches.length === 1 && zScale > 1 && zImg) {
+    } else if (e.touches.length === 1 && zScale > 1 && zEl) {
       pan = { x: e.touches[0].clientX, y: e.touches[0].clientY, tx: zTx, ty: zTy };
     }
   }, { passive: true });
 
   lb.addEventListener('touchmove', (e) => {
-    if (pinch && e.touches.length === 2 && zImg) {
+    if (pinch && e.touches.length === 2 && zEl) {
       e.preventDefault();
       const [a, b] = e.touches;
       const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1;
@@ -463,7 +463,7 @@
         zClampPan();
       }
       zApply();
-    } else if (pan && e.touches.length === 1 && zScale > 1 && zImg) {
+    } else if (pan && e.touches.length === 1 && zScale > 1 && zEl) {
       e.preventDefault();
       zTx = pan.tx + (e.touches[0].clientX - pan.x);
       zTy = pan.ty + (e.touches[0].clientY - pan.y);
@@ -478,7 +478,7 @@
     if (pinch && e.touches.length < 2) {
       pinch = null;
       lastPinchEnd = Date.now();
-      if (e.touches.length === 1 && zScale > 1 && zImg) {
+      if (e.touches.length === 1 && zScale > 1 && zEl) {
         pan = { x: e.touches[0].clientX, y: e.touches[0].clientY, tx: zTx, ty: zTy };
       }
     }
@@ -487,13 +487,13 @@
 
   /* 桌面：放大后按住拖拽平移 */
   lb.addEventListener('mousedown', (e) => {
-    if (lb.hidden || zScale <= 1 || !zImg || !zImg.isConnected || e.button !== 0) return;
+    if (lb.hidden || zScale <= 1 || !zEl || !zEl.isConnected || e.button !== 0) return;
     drag = { x: e.clientX, y: e.clientY, tx: zTx, ty: zTy };
-    zImg.classList.add('zgrab');
+    zEl.classList.add('zgrab');
     e.preventDefault();
   });
   window.addEventListener('mousemove', (e) => {
-    if (!drag || !zImg) return;
+    if (!drag || !zEl) return;
     zTx = drag.tx + (e.clientX - drag.x);
     zTy = drag.ty + (e.clientY - drag.y);
     zClampPan();
@@ -502,16 +502,16 @@
   window.addEventListener('mouseup', () => {
     if (!drag) return;
     drag = null;
-    if (zImg) zImg.classList.remove('zgrab');
+    if (zEl) zEl.classList.remove('zgrab');
   });
 
   /* 双击：放大到 2.5x / 复位 */
   lbFig.addEventListener('dblclick', (e) => {
-    if (!zImg || !zImg.isConnected) return;
+    if (!zEl || !zEl.isConnected) return;
     e.preventDefault();
     if (zScale > 1) { zReset(true); return; }
     const ns = 2.5;
-    const r = zImg.getBoundingClientRect();
+    const r = zEl.getBoundingClientRect();
     const cx = e.clientX - (r.left + r.width / 2);
     const cy = e.clientY - (r.top + r.height / 2);
     const k = ns / zScale;
@@ -530,7 +530,6 @@
     lbFig.innerHTML = '';
 
     if (it.t === 'v') {
-      zImg = null;
       const v = document.createElement('video');
       v.src = resURL(it.p);
       v.controls = true; v.autoplay = true; v.playsInline = true;
@@ -549,6 +548,8 @@
             </div>`;
       }, { once: true });
       lbFig.appendChild(v);
+      /* 视频与图片共用同一套缩放：滚轮 / 双指捏合 / 放大后拖拽 */
+      zoomBind(v);
     } else {
       const img = document.createElement('img');
       img.src = resURL(it.p);
@@ -605,7 +606,7 @@
   function closeLightbox() {
     lb.hidden = true;
     lbFig.innerHTML = '';
-    zImg = null; pinch = null; pan = null; drag = null;
+    zEl = null; pinch = null; pan = null; drag = null;
     document.body.style.overflow = '';
   }
 

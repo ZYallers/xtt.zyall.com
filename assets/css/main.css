@@ -560,17 +560,17 @@ body {
   box-shadow: 0 40px 90px -30px rgba(0, 0, 0, .8), 0 0 0 1px rgba(255, 255, 255, .12);
   background: #1a1209;
 }
-/* 图片动画只做淡入：填充动画会覆盖内联 transform，缩放要靠内联样式 */
-.lb-figure video { animation: imgIn .45s var(--ease) both; }
-.lb-figure img {
+/* 图片与视频动画只做淡入：填充动画会覆盖内联 transform，缩放要靠内联样式 */
+.lb-figure img, .lb-figure video {
   animation: imgInFade .45s var(--ease) both;
-  touch-action: none; user-select: none; -webkit-user-drag: none;
+  user-select: none; -webkit-user-drag: none;
   cursor: zoom-in; will-change: transform;
 }
-.lb-figure img.zmed { cursor: grab; }
-.lb-figure img.zgrab { cursor: grabbing; }
+/* 图片吃掉触摸手势自己处理捏合；视频要留给原生控件，靠 pinch 的 preventDefault 兜住 */
+.lb-figure img { touch-action: none; }
+.lb-figure img.zmed, .lb-figure video.zmed { cursor: grab; }
+.lb-figure img.zgrab, .lb-figure video.zgrab { cursor: grabbing; }
 @keyframes imgInFade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes imgIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
 
 .lb-btn {
   position: absolute; top: 50%; translate: 0 -50%;
