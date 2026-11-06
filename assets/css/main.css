@@ -235,9 +235,10 @@ body {
 
 /* ---------- 筛选栏 ---------- */
 .filters {
+  position: relative;
+  z-index: 30;
   padding: 10px 0 12px;
   background: linear-gradient(180deg, rgba(251, 243, 230, .94), rgba(251, 243, 230, .82));
-  
   border-bottom: 1px solid rgba(214, 190, 160, .5);
   transition: box-shadow .3s var(--ease), padding .3s var(--ease);
 }
@@ -666,7 +667,7 @@ html.auth-pending body { visibility: hidden; }
 
 /* ---------- 顶部用户条 ---------- */
 .userbar {
-  position: fixed; top: 18px; right: 20px; z-index: 70;
+  position: absolute; top: 18px; right: 20px; z-index: 70;
   display: flex; align-items: center; gap: 10px;
   padding: 7px 8px 7px 14px;
   background: rgba(255, 252, 245, .78);
