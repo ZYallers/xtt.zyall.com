@@ -295,7 +295,7 @@ body {
 }
 .filter-label {
   flex: 0 0 auto; font-size: 11px; letter-spacing: .22em; color: var(--ink-soft);
-  font-weight: 600; padding-right: 2px; width: 46px;
+  font-weight: 600; padding-right: 2px; width: 32px;
 }
 .chips {
   display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
