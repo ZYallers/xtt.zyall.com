@@ -15,7 +15,7 @@
     return;
   }
   const ITEMS = DATA.items.map((it, i) => ({ ...it, id: i }));
-  const PER_PAGE = 30;
+  const PER_PAGE = 20;
   const UNDATED = 'none';
   /* 原图/视频托管在七牛云 Kodo（CDN 加速域名），缩略图仍走本站；
      中文目录名等需按段编码，否则 CDN 404 */
