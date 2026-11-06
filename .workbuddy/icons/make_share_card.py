@@ -62,6 +62,15 @@ AMBER = (176, 106, 34)
 
 SAMPLE = 140          # 从全量里抽样评估的张数（全量 2000+，逐张跑人脸太慢）
 
+# 定稿选片：2026-11-06 用户从 48 张候选表里手挑的 46 / 47 / 48，
+# 同一套国风写真，米白底 + 圆形构图，和奶油色卡片底色几乎同源。
+# 自动打分能判「有没有人、颜色搭不搭」，判不了「好不好看」，所以定稿写死。
+DEFAULT_PHOTOS = [
+    'gallery/thumbs/d3/d36ced41d17b13da.webp',   # 46 竹椅上
+    'gallery/thumbs/b6/b6550124ee58c5fa.webp',   # 47 提竹篮
+    'gallery/thumbs/1e/1edf8e46ce964bc1.webp',   # 48 持折扇
+]
+
 
 def vertical_gradient(size, top, bottom):
     w, h = size
@@ -180,8 +189,9 @@ def warmify(img):
     return Image.blend(out, tint, 0.05)
 
 
-def pick_photos(n=3):
-    """按时间三等分，每段挑一张最暖、最像「孩子照片」的，保证跨年份但不写明"""
+def pick_photos(n=3, rank=0):
+    """按时间三等分，每段挑一张最暖、最像「孩子照片」的，保证跨年份但不写明。
+    rank=1/2 取该段的次优、第三优，用来出多个候选版本。"""
     with open(DATA, encoding='utf-8') as f:
         items = json.load(f)['items']
     pool = [it for it in items if it.get('th') and it.get('t') == 'i']
@@ -213,13 +223,13 @@ def pick_photos(n=3):
         seg = seg or [x for x in base if x['path'] not in used]
         if not seg:
             break
-        best = max(seg, key=lambda x: x['score'])
+        best = sorted(seg, key=lambda x: -x['score'])[min(rank, len(seg) - 1)]
         picks.append(best['path'])
         used.add(best['path'])
     return picks[:n]
 
 
-def main():
+def main(out=OUT, rank=0, manual=None):
     canvas = vertical_gradient((S, S), CREAM_TOP, CREAM_BOT)
     glow, mask = warm_glow((S, S))
     canvas = Image.composite(glow, canvas, mask).convert('RGBA')
@@ -234,12 +244,19 @@ def main():
         w = d.textlength(text, font=font)
         d.text(((S - w) / 2, y), text, font=font, fill=fill)
 
-    # 文案里不出现任何数字与年份：加照片、跨年份都不会让这张图过时
-    center('仅 限 家 人  ·  PRIVATE ALBUM', f_kick, 58, AMBER)
+    # 文字全部取自这句：把散落在年月里孩子长大的瞬间收起来，沿着时光看看那个小小滴娃
+    # 上中下三行互不重复，也不出现「仅限家人」和网址
+    center('散 落 在 年 月 里', f_kick, 58, AMBER)
     center('时光小屋', f_title, 96, INK)
-    center('成长影像 · 只给家里人看', f_sub, 192, INK_SOFT)
+    center('孩子长大的瞬间', f_sub, 195, INK_SOFT)
 
-    photos = pick_photos(3)
+    if manual:
+        photos = [p if os.path.isabs(p) else os.path.join(ROOT, p) for p in manual]
+    elif rank == 0:
+        # 正式图用定稿三张；rank>0 才回去跑自动选片，方便再出候选
+        photos = [os.path.join(ROOT, p) for p in DEFAULT_PHOTOS]
+    else:
+        photos = pick_photos(3, rank)
     slots = [(-118, -7), (0, 2), (118, -6)]
     base_y = 250
     for i, (dx, rot) in enumerate(slots):
@@ -260,15 +277,19 @@ def main():
         canvas.paste(Image.new('RGBA', card.size, (96, 64, 32, 255)), (x, y), shadow)
         canvas.paste(card, (x, y), card)
 
-    center('慢慢长大，只在家人之间', ImageFont.truetype(SERIF, 27, index=1), 528, (74, 56, 38))
-    center('xtt.zyall.com · 微信里转发给家人', f_foot, 574, INK_SOFT)
+    center('沿着时光，看看那个小小滴娃', ImageFont.truetype(SERIF, 28, index=1), 532, (74, 56, 38))
 
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    canvas.convert('RGB').save(OUT, 'JPEG', quality=88, optimize=True, progressive=True)
-    print(f'{OUT}  {S}×{S}  {os.path.getsize(OUT) / 1024:.1f} KB  照片 {len(photos)} 张')
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    canvas.convert('RGB').save(out, 'JPEG', quality=88, optimize=True, progressive=True)
+    print(f'{out}  {S}×{S}  {os.path.getsize(out) / 1024:.1f} KB  照片 {len(photos)} 张')
     for p in photos:
         print('  ', os.path.relpath(p, ROOT))
 
 
 if __name__ == '__main__':
-    main()
+    # 用法：python3 make_share_card.py [输出路径] [rank] [图1,图2,图3]
+    # rank=0 最优选片（默认产出正式图），1/2 取次优；给了第三参数就直接用指定照片
+    _out = sys.argv[1] if len(sys.argv) > 1 else OUT
+    _rank = int(sys.argv[2]) if len(sys.argv) > 2 else 0
+    _manual = sys.argv[3].split(',') if len(sys.argv) > 3 and sys.argv[3] else None
+    main(_out, _rank, _manual)
