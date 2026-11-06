@@ -617,6 +617,11 @@
 
   $('#lbClose').onclick = closeLightbox;
   lb.querySelector('.lb-backdrop').onclick = closeLightbox;
+  /* 点击图片/视频以外的区域（舞台空白处）等同于点关闭按钮 */
+  lb.querySelector('.lb-stage').addEventListener('click', (e) => {
+    if (e.target.closest('.lb-figure, .lb-btn, .lb-close, .lb-cap')) return;
+    closeLightbox();
+  });
   $('#lbPrev').onclick = () => stepLightbox(-1);
   $('#lbNext').onclick = () => stepLightbox(1);
 
