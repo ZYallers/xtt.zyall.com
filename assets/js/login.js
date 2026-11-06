@@ -98,12 +98,27 @@
     return 'index.html' + (h ? '#' + h : '');
   }
 
-  /* 已登录则直接进站 */
+  /* 已登录则直接进站：先看本次会话，再看「记住 7 天」。
+     只看 sessionStorage 会让勾了记住的用户在新标签页 / 重开浏览器访问 login.html
+     时仍卡在登录页——而 auth.js 的入场守卫是两者都查的，两边规则必须一致。 */
+  function valid(s) {
+    return !!(s && s.u && s.k && s.e > Date.now());
+  }
+
   (function already() {
-    try {
-      var s = JSON.parse(sessionStorage.getItem(SESSION) || 'null');
-      if (s && s.e > Date.now()) location.replace(target());
-    } catch (e) {}
+    var s = null;
+    try { s = JSON.parse(sessionStorage.getItem(SESSION) || 'null'); } catch (e) { s = null; }
+    if (!valid(s)) {
+      s = null;
+      try { s = JSON.parse(localStorage.getItem(PERSIST) || 'null'); } catch (e) { s = null; }
+      if (valid(s)) {
+        // 记住态补写回本次会话，后续页面读到的是同一份
+        try { sessionStorage.setItem(SESSION, JSON.stringify(s)); } catch (e) {}
+      } else {
+        s = null;
+      }
+    }
+    if (s) location.replace(target());
   })();
 
   form.addEventListener('submit', async function (ev) {
