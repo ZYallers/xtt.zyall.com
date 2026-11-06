@@ -218,6 +218,63 @@
     });
   }, { rootMargin: '120px 0px 200px', threshold: 0.01 });
 
+  /* ---------------- 缩略图懒加载 ----------------
+     原生 loading="lazy" 的提前量太大（视口外一两屏都预取），每页 20 张几乎全落在里面，
+     等于一进站就把 20 个请求一起发出去，移动端弱网必卡。改成两件事：
+       · 卡片滚到视口前一屏（320px）才入队，更远的一分流量都不花；
+       · 队列同时最多 6 个在途，落地一个再发下一个，瞬时并发被压平。 */
+  const THUMB_AHEAD = '320px 0px';
+  const THUMB_PARALLEL = 6;
+  const thumbQueue = [];
+  const thumbLoaded = new Set();   // 本次会话已下过的图，翻页回来直接吃内存缓存
+  let thumbInflight = 0;
+
+  const thumbObserver = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      thumbObserver.unobserve(e.target);
+      thumbQueue.push(e.target);
+    });
+    pumpThumbs();
+  }, { rootMargin: THUMB_AHEAD });
+
+  function pumpThumbs() {
+    while (thumbInflight < THUMB_PARALLEL && thumbQueue.length) {
+      const img = thumbQueue.shift();
+      /* 翻页/筛选后残留的旧引用直接丢掉，别再白跑一趟 */
+      if (!img.isConnected || !img.dataset.src) continue;
+      startThumb(img);
+    }
+  }
+
+  function startThumb(img) {
+    const src = img.dataset.src;
+    const fb = img.dataset.fb;
+    thumbInflight++;
+    let done = false;
+    const release = () => {
+      if (done) return;
+      done = true;
+      img.onload = img.onerror = null;
+      thumbInflight--;
+      pumpThumbs();
+    };
+    img.onload = () => {
+      delete img.dataset.src;          // 移除该属性 → CSS 的 opacity:0 失效 → 淡入
+      thumbLoaded.add(src);
+      img.parentElement.classList.add('thumb-loaded');   // 视频卡的暗色遮罩等这张图到了再上
+      release();
+    };
+    img.onerror = () => {
+      /* 只有图片才有原图可回退；视频封面挂了就停在占位图，别去拉原视频 */
+      if (fb && !img.dataset.fbUsed) { img.dataset.fbUsed = '1'; img.src = fb; return; }
+      img.src = PLACEHOLDER;
+      delete img.dataset.src;      // 放弃等待，让占位图露出来
+      release();
+    };
+    img.src = src;
+  }
+
   function cardNode(it) {
     const c = el('article', 'card' + (it.t === 'v' ? ' is-video' : ''));
     c.dataset.id = it.id;
@@ -229,15 +286,17 @@
     const src = it.th || (it.t === 'i' ? resURL(it.p) : null);
     if (src) {
       const img = el('img', 'thumb');
-      img.loading = 'lazy';
       img.decoding = 'async';
       img.alt = it.n;
-      img.src = src;
-      img.onerror = () => {
-        /* 只有图片才有原图可回退；视频封面挂了就停在占位图，别去拉原视频 */
-        if (!img.dataset.fb && it.t === 'i' && it.th) { img.dataset.fb = '1'; img.src = resURL(it.p); }
-        else img.src = PLACEHOLDER;
-      };
+      if (thumbLoaded.has(src)) {
+        /* 本次会话已经下过这张：直接命中内存缓存，不用排队也不用淡入 */
+        img.src = src;
+        c.classList.add('thumb-loaded');
+      } else {
+        /* 真 src 由懒加载队列按需挂上；data-fb 是加载失败时的回退地址 */
+        img.dataset.src = src;
+        if (it.th && it.t === 'i') img.dataset.fb = resURL(it.p);
+      }
       c.appendChild(img);
     } else {
       const ph = el('img', 'thumb');
@@ -284,7 +343,11 @@
     const slice = list.slice(start, start + PER_PAGE);
 
     const grid = $('#grid');
+    /* 旧卡片先从观察器摘掉，否则翻页翻多了会攒一堆 detached 引用 */
+    grid.querySelectorAll('.card').forEach((c) => cardObserver.unobserve(c));
+    grid.querySelectorAll('img.thumb[data-src]').forEach((img) => thumbObserver.unobserve(img));
     grid.innerHTML = '';
+    thumbQueue.length = 0;      // 上一屏还没发出去的请求直接作废
     $('#empty').hidden = list.length > 0;
 
     let lastKey = null;
@@ -312,6 +375,13 @@
       if (FORCE_REVEAL) { c.classList.add('in'); c.style.transitionDelay = '0ms'; }
       else cardObserver.observe(c);
     });
+
+    /* 缩略图：进视口前一屏才请求；不支持 IO 的兜底环境直接排队加载 */
+    grid.querySelectorAll('img.thumb[data-src]').forEach((img) => {
+      if (FORCE_REVEAL) thumbQueue.push(img);
+      else thumbObserver.observe(img);
+    });
+    pumpThumbs();
 
     $('#resultCount').innerHTML = `共 <b>${list.length}</b> 项${state.q ? ' · 含搜索' : ''}`;
     $('#filterSummary').textContent = summaryText(list.length);

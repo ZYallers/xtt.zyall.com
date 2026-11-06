@@ -393,7 +393,8 @@ body {
 .card {
   position: relative; cursor: pointer;
   border-radius: 14px; overflow: hidden;
-  background: #fff; box-shadow: var(--shadow-1);
+  /* 暖色底：缩略图还没到（.thumb 透明）时就是这层占位 */
+  background: linear-gradient(135deg, #f4e6d1, #e8d3b6); box-shadow: var(--shadow-1);
   aspect-ratio: 1 / 1;
   transform: translateY(16px) scale(.97); opacity: 0;
   transition: transform .55s var(--ease), opacity .55s var(--ease), box-shadow .4s var(--ease);
@@ -406,15 +407,17 @@ body {
 .thumb {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; display: block;
-  transition: transform .7s var(--ease), filter .4s var(--ease);
+  transition: transform .7s var(--ease), filter .4s var(--ease), opacity .4s var(--ease);
   filter: saturate(.95) contrast(1.02) brightness(1.01);
-  background: linear-gradient(135deg, #f4e6d1, #e8d3b6);
+  /* 懒加载中先透明，露出 .card 上的暖色占位；图到了由 JS 摘掉 data-src 后淡入 */
+  opacity: 1;
   /* 缩略图是 WebP，iOS 长按「存储图像」存不进相册；屏蔽长按菜单，引导点开灯箱存原图 */
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
   -webkit-user-drag: none;
 }
+.thumb[data-src] { opacity: 0; }
 .card:hover .thumb { filter: saturate(1.06) contrast(1.04); }
 
 /* 视频卡：首帧 + 播放标记 */
@@ -424,6 +427,8 @@ body {
   background: linear-gradient(180deg, rgba(60,40,20,0) 42%, rgba(48, 30, 14, .5) 100%);
   pointer-events: none;
 }
+/* 封面还没到时别压暗，否则暖色占位上会显出一块暗斑 */
+.card.is-video:not(.thumb-loaded)::after { display: none; }
 .play-badge {
   position: absolute; left: 50%; top: 50%; translate: -50% -50%;
   width: 46px; height: 46px; border-radius: 50%;
