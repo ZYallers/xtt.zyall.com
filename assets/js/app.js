@@ -702,18 +702,9 @@
     applyCollapse();
   });
 
-  let prevStuck = null;
   let prevTopBtn = null;
-  const userbar = $('#userbar');
   function onScroll() {
     const y = window.scrollY;
-    const stuck = y > 320;
-    if (stuck !== prevStuck) {
-      prevStuck = stuck;
-      filters.classList.toggle('stuck', stuck);
-      if (userbar) userbar.classList.toggle('hide', stuck);   // 别压住右上角的折叠按钮
-      applyCollapse();
-    }
     const showTop = y > 900;
     if (showTop !== prevTopBtn) {
       prevTopBtn = showTop;
