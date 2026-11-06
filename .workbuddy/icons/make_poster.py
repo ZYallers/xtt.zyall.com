@@ -84,7 +84,8 @@ def main():
     d.text(((W - tw) / 2, qy + QR + QBOX + TIP_GAP), TIP_TEXT, font=f_tip, fill=INK_DEEP)
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    canvas.save(OUT, 'JPEG', quality=90, optimize=True, progressive=True)
+    # q80：SSIM 0.9988（对比 q92），二维码仍能稳定解码；体积 143KB → 96KB
+    canvas.save(OUT, 'JPEG', quality=80, optimize=True, progressive=True)
     print(f'{OUT}  {W}×{H}  {os.path.getsize(OUT) / 1024:.1f} KB  照片 {len(photos)} 张')
     for p in photos:
         print('  ', os.path.relpath(p, ROOT))

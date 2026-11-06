@@ -332,7 +332,8 @@ def render(size=S, rank=0, manual=None, hires=False, bg_height=None):
 def main(out=OUT, rank=0, manual=None):
     canvas, photos = render(S, rank, manual)
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    canvas.convert('RGB').save(out, 'JPEG', quality=88, optimize=True, progressive=True)
+    # q80：SSIM 0.9979（对比 q88），肉眼无差；体积从 40KB 降到 31KB
+    canvas.convert('RGB').save(out, 'JPEG', quality=80, optimize=True, progressive=True)
     print(f'{out}  {S}×{S}  {os.path.getsize(out) / 1024:.1f} KB  照片 {len(photos)} 张')
     for p in photos:
         print('  ', os.path.relpath(p, ROOT))
