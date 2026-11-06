@@ -109,19 +109,18 @@
     $('#genTime').textContent = DATA.generated || '—';
   }
 
-  /* ---------------- 胶片拼贴：桌面 5 张 / 移动端 3 张，每 30s 随机换一张 ----------------
-     移动端宽度有限：3 张叠放，间距收小让相邻卡片重叠约一半，角度也收窄 */
-  const CL_SWAP_MS = 30000;
+  /* ---------------- 胶片拼贴：桌面 / 移动端均 5 张，静态展示不轮换 ----------------
+     移动端屏窄：间距按视口比例收窄，5 张同样叠放开（旋转角度与桌面一致） */
   const mqMobile = window.matchMedia('(max-width: 900px)');
-  const clParams = () => mqMobile.matches
-    ? { slots: 3, gap: 72, rots: [-7, 0, 7] }
-    : { slots: 5, gap: 112, rots: [-11, -5, 0, 6, 12] };
-  let clTimer = null;
+  const clParams = () => ({
+    slots: 5,
+    gap: mqMobile.matches ? Math.round(window.innerWidth * 0.13) : 112,
+    rots: [-11, -5, 0, 6, 12],
+  });
 
   function renderCollage() {
     const box = $('#heroCollage');
     if (!box) return;
-    clearInterval(clTimer);
     const { slots: CL_SLOTS, gap: CL_GAP, rots: CL_ROTS } = clParams();
     box.innerHTML = '';
     const pool = ITEMS.filter((i) => i.th && i.t === 'i');
@@ -134,59 +133,22 @@
       return it;
     };
 
-    const slots = [];
     for (let i = 0; i < CL_SLOTS; i++) {
       const it = take();
       const p = el('div', 'polaroid');
       p.innerHTML = `<div class="polaroid-card"><img src="${it.th}" alt="" loading="lazy"></div>`;
-      const slot = { el: p, it };
       /* 点击拼贴卡片 = 打开灯箱看原图，左右翻页按时间序走全部照片 */
       p.firstChild.style.cursor = 'pointer';
-      p.firstChild.addEventListener('click', () => openLightbox(slot.it.id, pool));
+      p.firstChild.addEventListener('click', () => openLightbox(it.id, pool));
       p.style.setProperty('--rot', CL_ROTS[i] + 'deg');
       p.style.setProperty('--z', String(10 - Math.abs(i - (CL_SLOTS - 1) / 2)));
       p.style.marginLeft = ((i - (CL_SLOTS - 1) / 2) * CL_GAP) + 'px';
       /* 负延迟只错开摆动相位，不产生等待 */
       p.firstChild.style.animationDelay = (-i * 1.3) + 's';
       box.appendChild(p);
-      slots.push(slot);
     }
-
-    /* 每 30s 随机挑一个槽位换一张新图（避开上一次的槽，保证 5 个槽都有机会轮到）。
-       先等新图加载完，再让新旧两张图在卡片框内同步上滑（胶片式）：
-       旧图向上滑出、新图从底部跟进，框与摆动动画全程不动，不抖不空。 */
-    let last = -1;
-    const swapSlot = (slot) => {
-      const card = slot.el.firstChild;
-      const oldImg = card.querySelector('img');
-      const it = take();
-      shown.delete(slot.it);
-      const pre = new Image();
-      pre.onload = () => {
-        slot.it = it;
-        const nimg = document.createElement('img');
-        nimg.src = it.th;
-        nimg.alt = '';
-        nimg.className = 'cl-pre';
-        card.appendChild(nimg);
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          oldImg.classList.add('cl-out');
-          nimg.classList.remove('cl-pre');
-          setTimeout(() => oldImg.remove(), 560);
-        }));
-      };
-      pre.onerror = () => shown.add(it); /* 加载失败放弃这张，保留旧图 */
-      pre.src = it.th;
-    };
-    clTimer = setInterval(() => {
-      if (document.hidden) return;
-      let k;
-      do { k = Math.floor(Math.random() * slots.length); } while (k === last);
-      last = k;
-      swapSlot(slots[k]);
-    }, CL_SWAP_MS);
   }
-  /* 桌面 ↔ 移动端断点切换时重建拼贴（换槽位数与叠放参数） */
+  /* 桌面 ↔ 移动端断点切换时重建拼贴（间距随视口宽度重算） */
   mqMobile.addEventListener('change', renderCollage);
 
   /* ---------------- 微尘 ---------------- */
