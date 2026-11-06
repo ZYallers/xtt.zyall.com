@@ -94,7 +94,7 @@
       <p class="login-err" id="loginErr" role="alert" aria-live="polite"></p>
 
       <label class="remember">
-        <input type="checkbox" id="remember">
+        <input type="checkbox" id="remember" checked>
         <span class="cbx" aria-hidden="true"></span>
         <span class="remember-txt">在这台设备上记住 7 天</span>
       </label>
@@ -108,6 +108,20 @@
     <p class="login-bye" id="byeTip" hidden>已安全退出，相册重新上锁</p>
     <p class="login-foot">密码只在本机校验，不发送、不记录</p>
   </section>
+
+  <!-- 取消「记住 7 天」的二次确认：默认勾选，主动取消要先点头 -->
+  <div class="confirm" id="rememberConfirm" hidden>
+    <div class="confirm-mask"></div>
+    <div class="confirm-card" role="dialog" aria-modal="true"
+         aria-labelledby="confirmTitle" aria-describedby="confirmBody">
+      <p class="confirm-title" id="confirmTitle">确定不记住这台设备？</p>
+      <p class="confirm-body" id="confirmBody">如果不勾选，关闭页面后下次进来得重新解锁，您确定吗？</p>
+      <div class="confirm-acts">
+        <button type="button" class="confirm-btn ghost" id="confirmDrop">仍要取消</button>
+        <button type="button" class="confirm-btn primary" id="confirmKeep">保持勾选</button>
+      </div>
+    </div>
+  </div>
 
   <p class="login-tip">
     &COPY;2026 <a href="https://www.zyall.com/" target="_blank">ZYall</a> All Rights Reserved

@@ -66,6 +66,54 @@
     return 0;
   }
 
+  /* 「记住 7 天」默认勾选；主动取消要二次确认，点头之后才真的取消。
+     取消勾选只是改变下次的记住策略，不影响本次已建立的会话。 */
+  var confirmEl = document.getElementById('rememberConfirm');
+  if (rememberEl && confirmEl) {
+    var keepBtn = document.getElementById('confirmKeep');
+    var dropBtn = document.getElementById('confirmDrop');
+    var lastFocus = null;
+
+    function closeConfirm() {
+      confirmEl.hidden = true;
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+      lastFocus = null;
+    }
+    function keepChecked() {
+      rememberEl.checked = true;
+      closeConfirm();
+    }
+
+    rememberEl.addEventListener('change', function () {
+      if (rememberEl.checked) return;      // 勾选方向不拦
+      rememberEl.checked = true;           // 先还原，等家人确认再真正取消
+      lastFocus = document.activeElement;
+      confirmEl.hidden = false;
+      keepBtn.focus();
+    });
+
+    keepBtn.addEventListener('click', keepChecked);
+    dropBtn.addEventListener('click', function () {
+      rememberEl.checked = false;          // 程序赋值不触发 change，不会递归
+      closeConfirm();
+    });
+
+    // 点遮罩 = 保持勾选，避免误触后把记住关掉
+    confirmEl.addEventListener('click', function (ev) {
+      if (ev.target.closest('.confirm-card')) return;
+      keepChecked();
+    });
+
+    document.addEventListener('keydown', function (ev) {
+      if (confirmEl.hidden) return;
+      if (ev.key === 'Escape') { ev.preventDefault(); keepChecked(); return; }
+      if (ev.key === 'Tab') {             // 焦点圈在弹窗里，别跑到背后的表单
+        ev.preventDefault();
+        (document.activeElement === keepBtn ? dropBtn : keepBtn).focus();
+      }
+    });
+  }
+
   /* 回车提交 + 显示/隐藏密码 */
   var eye = document.getElementById('eye');
   if (eye) {
