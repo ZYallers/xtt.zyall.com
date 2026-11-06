@@ -735,6 +735,9 @@ html.js .boot.done { opacity: 0; pointer-events: none; }
 }
 .userbar .ub-out:hover { background: var(--amber); color: #fff; }
 
+/* 微信抓取转发卡片缩略图用的元素：移出视口、不参与布局、用户端也不会下载（lazy） */
+.share-thumb { position: fixed; left: -9999px; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
 /* ---------- 登录页 ---------- */
 .login-body {
   min-height: 100vh;
