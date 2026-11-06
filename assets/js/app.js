@@ -109,9 +109,9 @@
     $('#genTime').textContent = DATA.generated || '—';
   }
 
-  /* ---------------- 胶片拼贴：随机抽样，每 10s 从左到右轮换一张 ---------------- */
-  const CL_SLOTS = 7, CL_GAP = 108, CL_SWAP_MS = 10000;
-  const CL_ROTS = [-22, -15, -8, 0, 8, 15, 22];
+  /* ---------------- 胶片拼贴：随机抽样，每 30s 随机换一张 ---------------- */
+  const CL_SLOTS = 5, CL_GAP = 112, CL_SWAP_MS = 30000;
+  const CL_ROTS = [-11, -5, 0, 6, 12];
 
   function renderCollage() {
     const box = $('#heroCollage');
@@ -144,10 +144,10 @@
       slots.push(slot);
     }
 
-    /* 每 10s 从随机缩略图抽一张新图，按从左往右的顺序轮换槽位。
+    /* 每 30s 随机挑一个槽位换一张新图（避开上一次的槽，保证 5 个槽都有机会轮到）。
        先等新图加载完，再让新旧两张图在卡片框内同步上滑（胶片式）：
        旧图向上滑出、新图从底部跟进，框与摆动动画全程不动，不抖不空。 */
-    let next = 0;
+    let last = -1;
     const swapSlot = (slot) => {
       const card = slot.el.firstChild;
       const oldImg = card.querySelector('img');
@@ -172,8 +172,10 @@
     };
     setInterval(() => {
       if (document.hidden) return;
-      swapSlot(slots[next]);
-      next = (next + 1) % CL_SLOTS;
+      let k;
+      do { k = Math.floor(Math.random() * slots.length); } while (k === last);
+      last = k;
+      swapSlot(slots[k]);
     }, CL_SWAP_MS);
   }
 
