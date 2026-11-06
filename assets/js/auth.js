@@ -6,6 +6,9 @@
 (function () {
   'use strict';
 
+  /* 标记 JS 可用：加载层只在有 JS 时显示（无 JS 时把 noscript 提示露出来） */
+  document.documentElement.classList.add('js');
+
   var SESSION = 'xtt.session.v1';       // 本次会话（关掉浏览器即失效）
   var PERSIST = 'xtt.session.keep.v1';  // 勾选“记住 7 天”
 
@@ -48,15 +51,21 @@
 
   window.AUTH = { user: s.u, exp: s.e, keyBytes: b64d(s.k) };
 
-  /* 解密相册清单 */
+  /* 解密相册清单（v2 清单是 gzip 后再加密的，需先解压） */
   window.VAULT = {
     async open() {
       if (!window.GALLERY_ENC) throw new Error('envelope-missing');
       if (!window.AUTH) throw new Error('no-session');
       var key = await crypto.subtle.importKey(
         'raw', window.AUTH.keyBytes, { name: 'AES-GCM' }, false, ['decrypt']);
-      var buf = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv: b64d(window.GALLERY_ENC.i) }, key, b64d(window.GALLERY_ENC.d));
+      var buf = new Uint8Array(await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: b64d(window.GALLERY_ENC.i) }, key, b64d(window.GALLERY_ENC.d)));
+      if (window.GALLERY_ENC.v >= 2) {
+        /* 页面 loader 已按能力选了文件：走到这里说明 DecompressionStream 一定存在 */
+        var text = await new Response(
+          new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+        return JSON.parse(text);
+      }
       return JSON.parse(new TextDecoder().decode(buf));
     },
     clear() {

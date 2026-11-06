@@ -22,6 +22,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 // 仓库根目录 = 本文件所在目录（.workbuddy/）的上一级，不用写死绝对路径
@@ -54,10 +55,10 @@ function wrapKey(password, salt, key) {
   return { iv, ct: Buffer.concat([ct, c.getAuthTag()]) };
 }
 
-function encryptPayload(plain, key) {
+function encryptPayload(data, key) {
   const iv = crypto.randomBytes(12);
   const c = crypto.createCipheriv('aes-256-gcm', key, iv);
-  const ct = Buffer.concat([c.update(Buffer.from(plain, 'utf8')), c.final()]);
+  const ct = Buffer.concat([c.update(data), c.final()]);
   return { iv, ct: Buffer.concat([ct, c.getAuthTag()]) };
 }
 
@@ -131,25 +132,38 @@ if (hasAccounts) {
 }
 
 /* ---- 2. 加密清单 ---- */
+// v2：明文先 gzip 再加密——JSON 重复结构压缩率极高（782KB→约 118KB），
+//     端上用原生 DecompressionStream 解压；不支持的老设备走 data-legacy.enc.js（v1 不压缩）。
 // 每次加密的 IV 都是随机的，所以哪怕明文一字未改，产物也不同。
-// 明文没变就跳过写盘：否则每次重建都多出一个全新的 data.enc.js（约 0.9MB），白撑大 git。
+// 明文没变就跳过写盘：否则每次重建都多出一个全新的清单文件，白撑大 git。
 // 轮换密钥时必须重写（旧密文用新密钥解不开）。
-const SHAFILE = path.join(PRIVATE, 'data.sha');
+const SHAFILE = path.join(ROOT, '.workbuddy/private/data.sha');
+const LEGACY_ENC = path.join(ROOT, 'gallery', 'data-legacy.enc.js');
 const plainSha = crypto.createHash('sha256').update(plain).digest('hex');
 const prevSha = fs.existsSync(SHAFILE) ? fs.readFileSync(SHAFILE, 'utf8').trim() : '';
-const skipEnc = !rotated && prevSha === plainSha && fs.existsSync(DATA_ENC);
+const skipEnc = !rotated && prevSha === plainSha
+  && fs.existsSync(DATA_ENC) && fs.existsSync(LEGACY_ENC);
 
-let encSize = 0;
+let encSize = 0, legacySize = 0;
 if (skipEnc) {
   encSize = fs.statSync(DATA_ENC).size;
+  legacySize = fs.statSync(LEGACY_ENC).size;
 } else {
   const { iv, ct } = encryptPayload(plain, key);
   const encJs =
     '/* 加密后的相册清单（AES-256-GCM），密钥需登录后派生 */\n' +
     'window.GALLERY_ENC=' + JSON.stringify({ v: 1, i: b64(iv), d: b64(ct) }) + ';\n';
-  fs.writeFileSync(DATA_ENC, encJs, 'utf8');
+  fs.writeFileSync(LEGACY_ENC, encJs, 'utf8');
+  legacySize = encJs.length;
+
+  const gz = zlib.gzipSync(Buffer.from(plain, 'utf8'), { level: 9 });
+  const { iv: iv2, ct: ct2 } = encryptPayload(gz, key);
+  const encJs2 =
+    '/* 加密后的相册清单 v2：明文先 gzip 再 AES-256-GCM 加密，端上需支持 DecompressionStream */\n' +
+    'window.GALLERY_ENC=' + JSON.stringify({ v: 2, i: b64(iv2), d: b64(ct2) }) + ';\n';
+  fs.writeFileSync(DATA_ENC, encJs2, 'utf8');
   fs.writeFileSync(SHAFILE, plainSha + '\n', 'utf8');
-  encSize = encJs.length;
+  encSize = encJs2.length;
 }
 
 /* ---- 3. 明文下线 ---- */
@@ -161,6 +175,6 @@ console.log(accountsJs
   ? `账号 ${raw.length} 个 → assets/js/accounts.js (${(accountsJs.length / 1024).toFixed(1)} KB)`
   : '账号：未改动（复用 assets/js/accounts.js）');
 console.log(`密钥：${rotated ? '已轮换（所有会话失效，需重新登录）' : '复用 content.key（已登录的人不受影响）'}`);
-console.log(`清单 ${json.items.length} 项 → gallery/data.enc.js (${(encSize / 1e6).toFixed(2)} MB)${
+console.log(`清单 ${json.items.length} 项 → data.enc.js v2 ${(encSize / 1024).toFixed(0)} KB（gzip+加密）＋ data-legacy.enc.js ${(legacySize / 1024).toFixed(0)} KB（老设备）${
   skipEnc ? '，明文未变化已跳过重写' : ''}，明文 sha256:${plainSha.slice(0, 16)}`);
 console.log('明文清单只保存在 .workbuddy/private/data.json（禁止上传到站点）');

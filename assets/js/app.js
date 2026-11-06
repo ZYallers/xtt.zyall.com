@@ -851,4 +851,11 @@
   renderGrid();
   onScroll();          // 从带 hash 的链接进来时可能已经在页面中部
 
+  /* 清单解密完、首屏已渲染 → 收掉加载层 */
+  const boot = document.getElementById('boot');
+  if (boot) {
+    boot.classList.add('done');
+    setTimeout(() => boot.remove(), 450);
+  }
+
 })();

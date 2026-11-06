@@ -650,7 +650,7 @@ body {
   .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
   .filter-label { width: auto; font-size: 10px; }
   .lb-stage { padding: 44px 12px 96px; }
-  .lb-btn { width: 54px; height: 54px; font-size: 32px; }
+  .lb-btn { width: 54px; height: 54px; font-size: 32px; padding-bottom: 5px; }
   .lb-prev { left: 6px; } .lb-next { right: 6px; }
   .lb-close { top: 10px; right: 10px; width: 54px; height: 54px; font-size: 23px; }
   .result-count { margin-left: 0; flex-basis: 100%; }
@@ -681,6 +681,26 @@ html.auth-pending body { visibility: hidden; }
   position: absolute; inset: 0;
   background: radial-gradient(120% 90% at 50% 45%, transparent 42%, rgba(150, 110, 60, .12) 100%);
 }
+
+/* ---------- 清单加载层（登录后到解密渲染完成之间） ---------- */
+.boot { display: none; }
+html.js .boot {
+  display: grid; place-items: center;
+  position: fixed; inset: 0; z-index: 300;
+  background: linear-gradient(180deg, #fdf8ef, #fbf3e6);
+  transition: opacity .35s var(--ease);
+}
+html.js .boot.done { opacity: 0; pointer-events: none; }
+.boot-card { display: grid; justify-items: center; gap: 13px; text-align: center; }
+.boot-spin {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid rgba(201, 127, 43, .16);
+  border-top-color: #c97f2b;
+  animation: boot-rot .8s linear infinite;
+}
+@keyframes boot-rot { to { transform: rotate(360deg) } }
+.boot-txt { font-family: var(--serif); font-size: 16px; color: #a8631a; letter-spacing: .1em; }
+.boot-sub { font-size: 11.5px; color: #b39d88; letter-spacing: .05em; }
 
 /* ---------- 顶部用户条 ---------- */
 .userbar {

@@ -20,6 +20,15 @@
   <p style="padding:40px;font-family:system-ui;color:#7d6553">这个相册需要开启 JavaScript 才能解锁浏览</p>
 </noscript>
 
+<!-- 清单解密前的加载层：清单有几百 KB～1MB，弱网下给个明确的等待状态，别让人以为卡死 -->
+<div class="boot" id="boot" role="status" aria-live="polite">
+  <div class="boot-card">
+    <span class="boot-spin" aria-hidden="true"></span>
+    <p class="boot-txt">正在打开相册…</p>
+    <p class="boot-sub">首次会下载相册清单，之后浏览器会缓存它</p>
+  </div>
+</div>
+
 <!-- 顶部用户条 -->
 <div class="userbar" id="userbar" hidden>
   <span class="ub-dot" aria-hidden="true"></span>
@@ -135,7 +144,18 @@
   </div>
 </div>
 
-<script src="gallery/data.enc.js"></script>
-<script src="assets/js/app.js"></script>
+<!-- 相册清单：按设备能力选格式。支持 DecompressionStream 的设备拿 v2（gzip+加密，体积约为 1/6），
+     老设备拿 v1 原始加密版；async=false 保证并行下载但按序执行（清单先于 app.js） -->
+<script>
+(function () {
+  var gz = typeof DecompressionStream !== 'undefined';
+  ['gallery/' + (gz ? 'data.enc.js' : 'data-legacy.enc.js'), 'assets/js/app.js'].forEach(function (src) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.async = false;
+    document.head.appendChild(s);
+  });
+})();
+</script>
 </body>
 </html>
