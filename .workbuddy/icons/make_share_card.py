@@ -49,7 +49,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 DATA = os.path.join(ROOT, '.workbuddy', 'private', 'data.json')
 OUT = os.path.join(ROOT, 'assets', 'img', 'share-card.jpg')
 
-S = 640
+BASE_SIZE = 640       # 版式基准：所有坐标、字号都按 640 设计，其它尺寸等比缩放
+S = BASE_SIZE         # share-card.jpg 的输出尺寸
 SERIF = '/System/Library/Fonts/Supplemental/Songti.ttc'
 SANS = '/System/Library/Fonts/Hiragino Sans GB.ttc'   # 本机无 PingFang.ttc，用冬青黑体代替
 
@@ -97,10 +98,11 @@ def warm_glow(size):
 
 
 def polaroid(photo, w=196, h=242, pad=11, tail=24):
-    """白框 + 照片（等比裁切）+ 底部留白"""
+    """白框 + 照片（等比裁切）+ 底部留白；圆角随尺寸等比，大图不会显得太方"""
+    radius = max(3, int(round(w * 9 / 196)))
     card = Image.new('RGBA', (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(card)
-    d.rounded_rectangle([0, 0, w - 1, h - 1], radius=9, fill=(255, 253, 247, 255))
+    d.rounded_rectangle([0, 0, w - 1, h - 1], radius=radius, fill=(255, 253, 247, 255))
 
     iw, ih = w - pad * 2, h - pad * 2 - tail
     scale = max(iw / photo.width, ih / photo.height)
@@ -111,7 +113,8 @@ def polaroid(photo, w=196, h=242, pad=11, tail=24):
     img = img.crop([left, top, left + iw, top + ih]).convert('RGBA')
 
     mask = Image.new('L', (iw, ih), 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, iw - 1, ih - 1], radius=5, fill=255)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [0, 0, iw - 1, ih - 1], radius=max(2, int(round(w * 5 / 196))), fill=255)
     card.paste(img, (pad, pad), mask)
     return card
 
@@ -229,26 +232,63 @@ def pick_photos(n=3, rank=0):
     return picks[:n]
 
 
-def main(out=OUT, rank=0, manual=None):
-    canvas = vertical_gradient((S, S), CREAM_TOP, CREAM_BOT)
-    glow, mask = warm_glow((S, S))
+_ORIG = None
+
+
+def orig_index():
+    """缩略图相对路径 → 原图绝对路径。缩略图长边只有 480，放大到 1080 会糊，
+    海报这种大尺寸输出直接用 resources 里的原图重绘。"""
+    global _ORIG
+    if _ORIG is None:
+        _ORIG = {}
+        try:
+            with open(DATA, encoding='utf-8') as f:
+                items = json.load(f)['items']
+        except Exception:
+            items = []
+        for it in items:
+            rel, p = it.get('th'), it.get('p')
+            if not rel or not p or rel in _ORIG:
+                continue
+            for base in ('resources', 'resources2'):
+                cand = os.path.join(ROOT, base, p)
+                if os.path.exists(cand):
+                    _ORIG[rel] = cand
+                    break
+    return _ORIG
+
+
+def render(size=S, rank=0, manual=None, hires=False, bg_height=None):
+    """按 640 基准版式绘制卡片，size 可变。
+    坐标和字号全部以 640 为基准等比缩放，所以 1080 海报是重绘而不是把 640 放大。
+    bg_height 给海报用：渐变按整幅海报高度铺，只截取顶部 size 高度，
+    这样海报往下接二维码区块时底色是连续的，不会出现横向接缝。"""
+    k = size / BASE_SIZE
+    bg_h = bg_height or size
+
+    def px(v):
+        return int(round(v * k))
+
+    canvas = vertical_gradient((size, bg_h), CREAM_TOP, CREAM_BOT)
+    glow, mask = warm_glow((size, bg_h))
     canvas = Image.composite(glow, canvas, mask).convert('RGBA')
+    if bg_h != size:
+        canvas = canvas.crop((0, 0, size, size))
 
     d = ImageDraw.Draw(canvas)
-    f_kick = ImageFont.truetype(SANS, 17)
-    f_title = ImageFont.truetype(SERIF, 74, index=1)
-    f_sub = ImageFont.truetype(SANS, 21)
-    f_foot = ImageFont.truetype(SANS, 17)
+    f_kick = ImageFont.truetype(SANS, px(17))
+    f_title = ImageFont.truetype(SERIF, px(74), index=1)
+    f_sub = ImageFont.truetype(SANS, px(21))
 
     def center(text, font, y, fill):
         w = d.textlength(text, font=font)
-        d.text(((S - w) / 2, y), text, font=font, fill=fill)
+        d.text(((size - w) / 2, y), text, font=font, fill=fill)
 
     # 文字全部取自这句：把散落在年月里孩子长大的瞬间收起来，沿着时光看看那个小小滴娃
     # 上中下三行互不重复，也不出现「仅限家人」和网址
-    center('散 落 在 年 月 里', f_kick, 58, AMBER)
-    center('时光小屋', f_title, 96, INK)
-    center('孩子长大的瞬间', f_sub, 200, INK_SOFT)
+    center('散 落 在 年 月 里', f_kick, px(58), AMBER)
+    center('时光小屋', f_title, px(96), INK)
+    center('孩子长大的瞬间', f_sub, px(200), INK_SOFT)
 
     if manual:
         photos = [p if os.path.isabs(p) else os.path.join(ROOT, p) for p in manual]
@@ -257,28 +297,40 @@ def main(out=OUT, rank=0, manual=None):
         photos = [os.path.join(ROOT, p) for p in DEFAULT_PHOTOS]
     else:
         photos = pick_photos(3, rank)
+
+    if hires:
+        idx = orig_index()
+        photos = [idx.get(os.path.relpath(p, ROOT).replace(os.sep, '/'), p) for p in photos]
+
+    cw, ch, pad, tail = px(196), px(242), px(11), px(24)
     slots = [(-118, -7), (0, 2), (118, -6)]
-    base_y = 250
+    base_y = px(250)
     for i, (dx, rot) in enumerate(slots):
         if i >= len(photos):
             break
         try:
             with Image.open(photos[i]) as im:
-                ph = warmify(im.convert('RGB'))
+                shot = warmify(ImageOps.exif_transpose(im).convert('RGB'))
         except Exception:
             continue
-        card = polaroid(ph).rotate(rot, resample=Image.BICUBIC, expand=True)
-        x = int(S / 2 + dx - card.width / 2)
-        y = int(base_y + (242 - card.height) / 2)
+        card = polaroid(shot, w=cw, h=ch, pad=pad, tail=tail).rotate(
+            rot, resample=Image.BICUBIC, expand=True)
+        x = int(size / 2 + dx * k - card.width / 2)
+        y = int(base_y + (ch - card.height) / 2)
         shadow = Image.new('L', card.size, 0)
-        shadow.paste(Image.new('L', card.size, 120), (0, 10),
+        shadow.paste(Image.new('L', card.size, 120), (0, max(1, px(10))),
                      card.split()[3].point(lambda a: int(a * 0.55)))
-        shadow = shadow.filter(ImageFilter.GaussianBlur(12))
+        shadow = shadow.filter(ImageFilter.GaussianBlur(max(2, px(12))))
         canvas.paste(Image.new('RGBA', card.size, (96, 64, 32, 255)), (x, y), shadow)
         canvas.paste(card, (x, y), card)
 
-    center('沿着时光，看看那个小小滴娃', ImageFont.truetype(SERIF, 28, index=1), 552, (74, 56, 38))
+    center('沿着时光，看看那个小小滴娃',
+           ImageFont.truetype(SERIF, px(28), index=1), px(552), (74, 56, 38))
+    return canvas, photos
 
+
+def main(out=OUT, rank=0, manual=None):
+    canvas, photos = render(S, rank, manual)
     os.makedirs(os.path.dirname(out), exist_ok=True)
     canvas.convert('RGB').save(out, 'JPEG', quality=88, optimize=True, progressive=True)
     print(f'{out}  {S}×{S}  {os.path.getsize(out) / 1024:.1f} KB  照片 {len(photos)} 张')
