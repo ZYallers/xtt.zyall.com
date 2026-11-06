@@ -1,0 +1,73 @@
+# 自定义 GitHub Pages 部署：deploy 分支一有推送就打包发布。
+# 替代内置的 pages-build-deployment，解决两个问题：
+#   1) 内置工作流的 deploy-pages 默认 timeout=600000ms（正好 10 分钟），
+#      部署状态轮询超时就直接失败；这里放宽到 30 分钟并调大容错次数。
+#   2) 日志按「取代码 / 整理目录 / 上传 / 发布」分步，卡在哪一步一眼可见，
+#      每次运行都能在 Actions 里点 Re-run all jobs 手动重发。
+# 注意：ref 固定为 deploy，手动运行时也只发布 deploy 分支，不会误发 dev / master。
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [deploy]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时刻只跑一次发布，且不取消正在进行的部署（避免半成品站点）
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 取出 deploy 分支
+        uses: actions/checkout@v4
+        with:
+          ref: deploy
+          fetch-depth: 1
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 整理发布目录
+        # 只发布站点本身：.workbuddy 是本机构建脚本，.github / .git / README 也不必上线。
+        # .nojekyll 与 CNAME 必须保留（前者防 Jekyll，后者保住 xtt.zyall.com 自定义域名）。
+        run: |
+          mkdir -p _site
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.workbuddy/' \
+            --exclude='_site/' \
+            --exclude='.gitignore' \
+            --exclude='README.md' \
+            ./ _site/
+          echo "站点文件数：$(find _site -type f | wc -l)"
+          du -sh _site
+          test -f _site/index.html
+          test -f _site/CNAME
+          test -f _site/.nojekyll
+
+      - name: 上传站点产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: 发布到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          timeout: 1800000        # 30 分钟（默认 600000 = 10 分钟）
+          error_count: 20         # 状态轮询瞬时报错的容忍次数（默认 10）
+          reporting_interval: 10000
