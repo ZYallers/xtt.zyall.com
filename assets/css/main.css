@@ -586,11 +586,14 @@ body {
 .lb-btn:hover { background: rgba(255, 248, 236, .24); border-color: rgba(255, 255, 255, .34); }
 .lb-prev { left: 16px; }
 .lb-next { right: 16px; }
+/* 关闭按钮与左右切换按钮同尺寸（64px），图标✕按视觉重量取 22px */
 .lb-close {
-  position: absolute; top: 18px; right: 18px;
-  width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+  position: absolute; top: 16px; right: 16px;
+  width: 64px; height: 64px; border-radius: 50%; cursor: pointer;
   border: 1px solid rgba(255, 255, 255, .22); background: rgba(255, 248, 236, .1);
-  color: #fff7ea; font-size: 15px; backdrop-filter: blur(8px);
+  color: #fff7ea; font-size: 28px; line-height: 1; padding: 0;
+  display: grid; place-items: center;
+  backdrop-filter: blur(8px);
   transition: all .28s var(--ease);
 }
 .lb-close:hover { background: rgba(255, 248, 236, .24); transform: rotate(90deg); }
@@ -637,6 +640,7 @@ body {
   .lb-stage { padding: 44px 12px 96px; }
   .lb-btn { width: 54px; height: 54px; font-size: 32px; }
   .lb-prev { left: 6px; } .lb-next { right: 6px; }
+  .lb-close { top: 10px; right: 10px; width: 54px; height: 54px; font-size: 23px; }
   .result-count { margin-left: 0; flex-basis: 100%; }
 }
 
