@@ -565,7 +565,8 @@ body {
   to { opacity: 1; transform: none; }
 }
 
-.lb-figure { margin: 0; display: grid; place-items: center; max-width: 100%; max-height: 100%; }
+/* 层级锁定：媒体（会因 will-change:transform 独立成层，缩放后能盖住按钮）必须压在按钮之下 */
+.lb-figure { margin: 0; display: grid; place-items: center; max-width: 100%; max-height: 100%; position: relative; z-index: 1; }
 .lb-figure img, .lb-figure video {
   max-width: min(1200px, 88vw); max-height: calc(100vh - 190px);
   border-radius: 10px; display: block;
@@ -585,7 +586,7 @@ body {
 @keyframes imgInFade { from { opacity: 0; } to { opacity: 1; } }
 
 .lb-btn {
-  position: absolute; top: 50%; translate: 0 -50%;
+  position: absolute; top: 50%; translate: 0 -50%; z-index: 2;
   width: 64px; height: 64px; border-radius: 50%; cursor: pointer;
   border: 1px solid rgba(255, 255, 255, .22);
   background: rgba(255, 248, 236, .1); color: rgba(255, 246, 232, .92);
@@ -598,12 +599,12 @@ body {
 .lb-btn:hover { background: rgba(255, 248, 236, .24); border-color: rgba(255, 255, 255, .34); }
 .lb-prev { left: 16px; }
 .lb-next { right: 16px; }
-/* 关闭按钮与左右切换按钮同尺寸（64px），图标✕按视觉重量取 22px */
+/* 关闭按钮比左右切换小一号：常驻可见，太大会抢注意力 */
 .lb-close {
-  position: absolute; top: 16px; right: 16px;
-  width: 64px; height: 64px; border-radius: 50%; cursor: pointer;
+  position: absolute; top: 18px; right: 20px; z-index: 2;
+  width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
   border: 1px solid rgba(255, 255, 255, .22); background: rgba(255, 248, 236, .1);
-  color: #fff7ea; font-size: 28px; line-height: 1; padding: 0;
+  color: #fff7ea; font-size: 20px; line-height: 1; padding: 0;
   display: grid; place-items: center;
   backdrop-filter: blur(8px);
   transition: all .28s var(--ease);
@@ -611,7 +612,7 @@ body {
 .lb-close:hover { background: rgba(255, 248, 236, .24); transform: rotate(90deg); }
 
 .lb-cap {
-  position: absolute; left: 0; right: 0; bottom: 26px; text-align: center;
+  position: absolute; left: 0; right: 0; bottom: 26px; z-index: 2; text-align: center;
   color: rgba(255, 246, 232, .92); font-size: 13px; line-height: 1.9;
   padding: 0 24px; pointer-events: none;
 }
@@ -652,7 +653,7 @@ body {
   .lb-stage { padding: 44px 12px 96px; }
   .lb-btn { width: 54px; height: 54px; font-size: 32px; padding-bottom: 5px; }
   .lb-prev { left: 6px; } .lb-next { right: 6px; }
-  .lb-close { top: 10px; right: 10px; width: 54px; height: 54px; font-size: 23px; }
+  .lb-close { top: 12px; right: 12px; width: 40px; height: 40px; font-size: 18px; }
   .result-count { margin-left: 0; flex-basis: 100%; }
 }
 
