@@ -248,7 +248,7 @@ def main(out=OUT, rank=0, manual=None):
     # 上中下三行互不重复，也不出现「仅限家人」和网址
     center('散 落 在 年 月 里', f_kick, 58, AMBER)
     center('时光小屋', f_title, 96, INK)
-    center('孩子长大的瞬间', f_sub, 195, INK_SOFT)
+    center('孩子长大的瞬间', f_sub, 200, INK_SOFT)
 
     if manual:
         photos = [p if os.path.isabs(p) else os.path.join(ROOT, p) for p in manual]
@@ -277,7 +277,7 @@ def main(out=OUT, rank=0, manual=None):
         canvas.paste(Image.new('RGBA', card.size, (96, 64, 32, 255)), (x, y), shadow)
         canvas.paste(card, (x, y), card)
 
-    center('沿着时光，看看那个小小滴娃', ImageFont.truetype(SERIF, 28, index=1), 532, (74, 56, 38))
+    center('沿着时光，看看那个小小滴娃', ImageFont.truetype(SERIF, 28, index=1), 552, (74, 56, 38))
 
     os.makedirs(os.path.dirname(out), exist_ok=True)
     canvas.convert('RGB').save(out, 'JPEG', quality=88, optimize=True, progressive=True)
