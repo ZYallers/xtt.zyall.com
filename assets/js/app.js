@@ -699,12 +699,18 @@
   filterToggle.addEventListener('click', () => {
     collapsed = !collapsed;
     try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch (e) {}
+    acc = 0;                 // 清掉方向累积，避免点开后又立刻被残留的滚动趋势收起
     applyCollapse();
   });
 
   let prevStuck = null;
   let prevTopBtn = null;
   const userbar = $('#userbar');
+  /* 滚动方向驱动筛选栏：吸顶后向下滚自动收起、向上滚自动展开。
+     累计滚动超过阈值才切换，避免惯性微滚来回抖动 */
+  let lastY = window.scrollY;
+  let acc = 0;
+  const DIR_T = 24;
   function onScroll() {
     const y = window.scrollY;
     const stuck = y > 320;
@@ -712,6 +718,18 @@
       prevStuck = stuck;
       filters.classList.toggle('stuck', stuck);
       if (userbar) userbar.classList.toggle('hide', stuck);   // 别压住右上角的折叠按钮
+      applyCollapse();
+    }
+    /* 自动收起只发生在吸顶状态；向上滚（含回到顶部脱离吸顶）必定展开。
+       自动变化不写 localStorage：刷新后回到用户手动选择的状态 */
+    const dy = y - lastY;
+    lastY = y;
+    if (dy !== 0) acc = Math.max(-DIR_T, Math.min(DIR_T, acc + dy));
+    if (acc >= DIR_T && stuck && !collapsed) {
+      collapsed = true;
+      applyCollapse();
+    } else if ((acc <= -DIR_T || !stuck) && collapsed) {
+      collapsed = false;
       applyCollapse();
     }
     const showTop = y > 900;
