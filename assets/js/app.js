@@ -700,20 +700,23 @@
     collapsed = !collapsed;
     try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch (e) {}
     acc = 0;                 // 清掉方向累积，避免点开后又立刻被残留的滚动趋势收起
+    lastAuto = performance.now();
     applyCollapse();
   });
 
   let prevStuck = null;
   let prevTopBtn = null;
   const userbar = $('#userbar');
-  /* 滚动方向驱动筛选栏：吸顶后向下滚自动收起、向上滚自动展开。
-     累计滚动超过阈值才切换，避免惯性微滚来回抖动 */
+  /* 滚动方向驱动筛选栏：真正吸顶后向下滚自动收起、向上滚自动展开。
+     - 吸顶判定用元素实际位置 rect.top<=0，不能用固定滚动值（筛选栏位置随首屏内容变）
+     - 收起阈值 ±24px；展开要反向累计 48px，且切换后 400ms 冷却：
+       折叠本身会改变文档高度，浏览器补偿 scrollY 会产生反向假信号，不设滞回会自激抖动 */
   let lastY = window.scrollY;
   let acc = 0;
-  const DIR_T = 24;
+  let lastAuto = 0;
   function onScroll() {
     const y = window.scrollY;
-    const stuck = y > 320;
+    const stuck = filters.getBoundingClientRect().top <= 0;
     if (stuck !== prevStuck) {
       prevStuck = stuck;
       filters.classList.toggle('stuck', stuck);
@@ -724,12 +727,15 @@
        自动变化不写 localStorage：刷新后回到用户手动选择的状态 */
     const dy = y - lastY;
     lastY = y;
-    if (dy !== 0) acc = Math.max(-DIR_T, Math.min(DIR_T, acc + dy));
-    if (acc >= DIR_T && stuck && !collapsed) {
+    if (dy !== 0) acc = Math.max(-48, Math.min(24, acc + dy));
+    const cooled = performance.now() - lastAuto > 400;
+    if (acc >= 24 && stuck && !collapsed && cooled) {
       collapsed = true;
+      lastAuto = performance.now();
       applyCollapse();
-    } else if ((acc <= -DIR_T || !stuck) && collapsed) {
+    } else if ((acc <= -48 || !stuck) && collapsed) {
       collapsed = false;
+      if (stuck) lastAuto = performance.now();   // 回顶强制展开不占冷却
       applyCollapse();
     }
     const showTop = y > 900;
