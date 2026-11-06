@@ -577,7 +577,7 @@ body {
   width: 64px; height: 64px; border-radius: 50%; cursor: pointer;
   border: 1px solid rgba(255, 255, 255, .22);
   background: rgba(255, 248, 236, .1); color: rgba(255, 246, 232, .92);
-  font-size: 38px; line-height: 1; padding-bottom: 4px;
+  font-size: 46px; line-height: 1; padding-bottom: 10px;
   display: grid; place-items: center;
   backdrop-filter: blur(8px);
   transition: background .28s var(--ease), border-color .28s var(--ease);
