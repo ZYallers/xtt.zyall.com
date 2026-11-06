@@ -109,13 +109,21 @@
     $('#genTime').textContent = DATA.generated || '—';
   }
 
-  /* ---------------- 胶片拼贴：随机抽样，每 30s 随机换一张 ---------------- */
-  const CL_SLOTS = 5, CL_GAP = 112, CL_SWAP_MS = 30000;
-  const CL_ROTS = [-11, -5, 0, 6, 12];
+  /* ---------------- 胶片拼贴：桌面 5 张 / 移动端 3 张，每 30s 随机换一张 ----------------
+     移动端宽度有限：3 张叠放，间距收小让相邻卡片重叠约一半，角度也收窄 */
+  const CL_SWAP_MS = 30000;
+  const mqMobile = window.matchMedia('(max-width: 900px)');
+  const clParams = () => mqMobile.matches
+    ? { slots: 3, gap: 72, rots: [-7, 0, 7] }
+    : { slots: 5, gap: 112, rots: [-11, -5, 0, 6, 12] };
+  let clTimer = null;
 
   function renderCollage() {
     const box = $('#heroCollage');
     if (!box) return;
+    clearInterval(clTimer);
+    const { slots: CL_SLOTS, gap: CL_GAP, rots: CL_ROTS } = clParams();
+    box.innerHTML = '';
     const pool = ITEMS.filter((i) => i.th && i.t === 'i');
     if (pool.length <= CL_SLOTS) return;
     const shown = new Set();
@@ -170,7 +178,7 @@
       pre.onerror = () => shown.add(it); /* 加载失败放弃这张，保留旧图 */
       pre.src = it.th;
     };
-    setInterval(() => {
+    clTimer = setInterval(() => {
       if (document.hidden) return;
       let k;
       do { k = Math.floor(Math.random() * slots.length); } while (k === last);
@@ -178,6 +186,8 @@
       swapSlot(slots[k]);
     }, CL_SWAP_MS);
   }
+  /* 桌面 ↔ 移动端断点切换时重建拼贴（换槽位数与叠放参数） */
+  mqMobile.addEventListener('change', renderCollage);
 
   /* ---------------- 微尘 ---------------- */
   function renderDust() {
