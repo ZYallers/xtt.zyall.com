@@ -455,6 +455,7 @@ body {
 .card-meta .cm-tag {
   background: rgba(255, 252, 245, .22); border: 1px solid rgba(255, 255, 255, .34);
   padding: 2px 8px; border-radius: 999px; backdrop-filter: blur(4px); font-size: 10.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 /* 扩展名异常的文件 */
