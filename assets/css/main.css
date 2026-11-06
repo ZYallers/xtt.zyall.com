@@ -369,8 +369,8 @@ body {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
+  gap: 16px;
   transition: opacity .25s var(--ease);
 }
 .grid.swap { opacity: 0; }
