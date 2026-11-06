@@ -5,18 +5,45 @@
 尺寸需要 ≥300×300，正方形观感最好。这里用站点里的真实照片拼一张
 和首页同款暖色调的卡片，不依赖任何在线服务。
 
+选片规则（2026-11-06）：
+- 卡片里不出现任何数字/年份——文案会随年份和素材数量过时
+- 照片必须与奶油色背景同调：按「暖度 + 亮度 + 饱和度 + 人脸面积」打分挑片，
+  挑完再统一做一次暖调偏移，避免冷色照片（室内白光、蓝色校服）跳出来
+
 构建期依赖（不进仓库）：
-    pip3 install --target /tmp/qrlib pillow
+    pip3 install --target /tmp/qrlib pillow numpy opencv-python-headless
     PYTHONPATH=/tmp/qrlib python3 .workbuddy/icons/make_share_card.py
+
+人脸检测模型 models/face_detection_yunet_2023mar.onnx（232KB，随脚本入库）：
+opencv 5 已经删掉 haarcascade（cv2/data 是空目录，CascadeClassifier 也没了），
+只剩 YuNet，所以模型必须自带，否则人脸检测会静默返回 0、选片门槛形同虚设。
+来源：https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet
 """
 import json
 import os
 import sys
 
 try:
-    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
 except ImportError:
     sys.exit('缺少 Pillow：PYTHONPATH=/tmp/qrlib python3 .workbuddy/icons/make_share_card.py')
+
+try:
+    import numpy as np
+except ImportError:
+    sys.exit('缺少 numpy：PYTHONPATH=/tmp/qrlib python3 .workbuddy/icons/make_share_card.py')
+
+try:
+    import cv2
+    # opencv 5 已经不含 haarcascade（cv2/data 是空的），CascadeClassifier 也移除了，
+    # 只剩 YuNet——模型文件 232KB，随脚本一起入库，保证换机器能复现
+    _MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          'models', 'face_detection_yunet_2023mar.onnx')
+    _DET = cv2.FaceDetectorYN_create(_MODEL, '', (320, 320), 0.7, 0.3, 5000) \
+        if os.path.exists(_MODEL) else None
+except Exception:                                     # 没有 opencv 就退化为无脸评分
+    cv2 = None
+    _DET = None
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA = os.path.join(ROOT, '.workbuddy', 'private', 'data.json')
@@ -28,9 +55,12 @@ SANS = '/System/Library/Fonts/Hiragino Sans GB.ttc'   # 本机无 PingFang.ttc�
 
 CREAM_TOP = (253, 248, 238)
 CREAM_BOT = (237, 219, 192)
+CREAM_AVG = tuple(round((a + b) / 2) for a, b in zip(CREAM_TOP, CREAM_BOT))
 INK = (58, 42, 26)
 INK_SOFT = (141, 119, 97)
 AMBER = (176, 106, 34)
+
+SAMPLE = 140          # 从全量里抽样评估的张数（全量 2000+，逐张跑人脸太慢）
 
 
 def vertical_gradient(size, top, bottom):
@@ -77,16 +107,115 @@ def polaroid(photo, w=196, h=242, pad=11, tail=24):
     return card
 
 
+def face_ratio(img):
+    """最大人脸占画面的比例（YuNet，人脸比 Haar 稳得多）"""
+    if _DET is None:
+        return 0.0
+    rgb = img.convert('RGB')
+    w, h = rgb.size
+    try:
+        _DET.setInputSize((w, h))
+        _, faces = _DET.detect(cv2.cvtColor(np.asarray(rgb), cv2.COLOR_RGB2BGR))
+    except Exception:
+        return 0.0
+    if faces is None or len(faces) == 0:
+        return 0.0
+    return max(float(f[2] * f[3]) for f in faces) / float(w * h)
+
+
+def photo_score(img):
+    """分数越高越适合放进暖色卡片；第二个返回值是「画面里有没有脸」"""
+    small = img.convert('RGB').copy()
+    small.thumbnail((320, 320), Image.LANCZOS)
+    arr = np.asarray(small, dtype=np.float32)
+
+    warm = float(arr[..., 0].mean() - arr[..., 2].mean())     # 红蓝差，正值偏暖
+    bright = float(arr.mean())
+    mx = arr.max(axis=2)
+    mn = arr.min(axis=2)
+    sat = float(((mx - mn) / np.maximum(mx, 1.0)).mean() * 100)
+
+    score = 0.0
+    score += 30 * max(0.0, min(1.0, (warm - 4) / 22))          # 冷光照片基本选不上
+    # 边缘色温：拍立得里画面边缘多半是环境（垫子、墙、桌布），偏蓝就整张都在跟奶油底打架
+    hh, ww = arr.shape[:2]
+    band = max(4, int(min(hh, ww) * 0.10))
+    edge = np.concatenate([arr[:band].reshape(-1, 3), arr[-band:].reshape(-1, 3),
+                           arr[:, :band].reshape(-1, 3), arr[:, -band:].reshape(-1, 3)])
+    ewarm = float(edge[:, 0].mean() - edge[:, 2].mean())
+    score += 22 * max(0.0, min(1.0, (ewarm + 2) / 24))
+    # 边缘太花（彩色爬行垫、花色墙纸）会把奶油底衬得很乱，扣分让干净背景优先
+    emx, emn = edge.max(axis=1), edge.min(axis=1)
+    esat = float(((emx - emn) / np.maximum(emx, 1.0)).mean() * 100)
+    score += 10 * max(0.0, 1 - esat / 42)
+    score += 20 * max(0.0, 1 - abs(bright - 145) / 95)         # 避开过暗/过曝
+    score += 10 * max(0.0, 1 - abs(sat - 34) / 34)             # 太灰、太花都扣分
+    r = face_ratio(small)
+    if r > 0:
+        # 中景（孩子半身）最好看：脸太小看不出人，脸太大成了家长大头照
+        score += 26 + 16 * max(0.0, 1 - abs(r - 0.09) / 0.16)
+    return score, r > 0
+
+
+def warmify(img):
+    """统一暖调：中和色偏 → 推向暖 → 叠一层暖褐调，把三张照片拉进同一色系"""
+    arr = np.asarray(img.convert('RGB'), dtype=np.float32)
+    # 灰世界白平衡：室内白炽灯/蓝色桌布会把整张照片压冷，先中和掉。
+    # 画面里大色块会骗到算法，所以增益限幅，不做彻底校正。
+    means = arr.reshape(-1, 3).mean(axis=0)
+    gain = np.clip(means.mean() / np.maximum(means, 1.0), 0.84, 1.20)
+    arr *= gain
+    arr[..., 0] *= 1.035
+    arr[..., 2] *= 0.955
+    out = Image.fromarray(np.clip(arr, 0, 255).astype('uint8'))
+    out = ImageEnhance.Contrast(out).enhance(1.02)
+    # 暖光：乘法直接压蓝通道，比加法混合更不容易削掉高光，蓝椅子/彩色垫子会真正退到背景里
+    out = ImageChops.multiply(out, Image.new('RGB', out.size, (255, 234, 204)))
+    out = ImageEnhance.Brightness(out).enhance(1.11)
+    # 再混一点暖褐，把年代不同的照片拉到同一色系
+    sepia = ImageOps.colorize(out.convert('L'),
+                              black=(46, 32, 18), mid=(198, 164, 126), white=(255, 248, 236))
+    out = Image.blend(out, sepia, 0.22)
+    tint = Image.new('RGB', out.size, CREAM_AVG)
+    return Image.blend(out, tint, 0.05)
+
+
 def pick_photos(n=3):
+    """按时间三等分，每段挑一张最暖、最像「孩子照片」的，保证跨年份但不写明"""
     with open(DATA, encoding='utf-8') as f:
         items = json.load(f)['items']
     pool = [it for it in items if it.get('th') and it.get('t') == 'i']
     if not pool:
         return []
-    picks = []
-    for f in (0.08, 0.42, 0.78):
-        it = pool[min(len(pool) - 1, int(len(pool) * f))]
-        picks.append(os.path.join(ROOT, it['th']))
+
+    step = max(1, len(pool) // SAMPLE)
+    cand = [(i * step, it) for i, it in enumerate(pool[::step][:SAMPLE])]
+
+    scored = []
+    for idx, it in cand:
+        path = os.path.join(ROOT, it['th'])
+        try:
+            with Image.open(path) as im:
+                score, has_face = photo_score(im)
+        except Exception:
+            continue
+        scored.append({'i': idx, 'score': score, 'face': has_face, 'path': path})
+
+    # 硬门槛：卡片是给家里人看孩子的，没检测到人脸的（风景、建筑、玩具特写）不要
+    facial = [x for x in scored if x['face']]
+    base = facial if len(facial) >= n else scored
+
+    picks, used = [], set()
+    total = max(x['i'] for x in base) or 1
+    for k in range(n):
+        lo, hi = total * k / n, total * (k + 1) / n
+        seg = [x for x in base if lo <= x['i'] < hi and x['path'] not in used]
+        seg = seg or [x for x in base if x['path'] not in used]
+        if not seg:
+            break
+        best = max(seg, key=lambda x: x['score'])
+        picks.append(best['path'])
+        used.add(best['path'])
     return picks[:n]
 
 
@@ -105,9 +234,10 @@ def main():
         w = d.textlength(text, font=font)
         d.text(((S - w) / 2, y), text, font=font, fill=fill)
 
+    # 文案里不出现任何数字与年份：加照片、跨年份都不会让这张图过时
     center('仅 限 家 人  ·  PRIVATE ALBUM', f_kick, 58, AMBER)
     center('时光小屋', f_title, 96, INK)
-    center('2017 — 2026 · 家庭影像', f_sub, 190, INK_SOFT)
+    center('成长影像 · 只给家里人看', f_sub, 192, INK_SOFT)
 
     photos = pick_photos(3)
     slots = [(-118, -7), (0, 2), (118, -6)]
@@ -116,7 +246,8 @@ def main():
         if i >= len(photos):
             break
         try:
-            ph = Image.open(photos[i]).convert('RGB')
+            with Image.open(photos[i]) as im:
+                ph = warmify(im.convert('RGB'))
         except Exception:
             continue
         card = polaroid(ph).rotate(rot, resample=Image.BICUBIC, expand=True)
@@ -129,12 +260,14 @@ def main():
         canvas.paste(Image.new('RGBA', card.size, (96, 64, 32, 255)), (x, y), shadow)
         canvas.paste(card, (x, y), card)
 
-    center('十年成长影像，只在家人之间', ImageFont.truetype(SERIF, 27, index=1), 528, (74, 56, 38))
+    center('慢慢长大，只在家人之间', ImageFont.truetype(SERIF, 27, index=1), 528, (74, 56, 38))
     center('xtt.zyall.com · 微信里转发给家人', f_foot, 574, INK_SOFT)
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     canvas.convert('RGB').save(OUT, 'JPEG', quality=88, optimize=True, progressive=True)
     print(f'{OUT}  {S}×{S}  {os.path.getsize(OUT) / 1024:.1f} KB  照片 {len(photos)} 张')
+    for p in photos:
+        print('  ', os.path.relpath(p, ROOT))
 
 
 if __name__ == '__main__':
